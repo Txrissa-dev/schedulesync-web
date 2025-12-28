@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import Link from 'next/link'
 
 interface DashboardStats {
   centres: number
@@ -188,9 +189,12 @@ export default function DashboardPage() {
                       {cls.centre_name} {cls.room && `• Room ${cls.room}`} • {cls.student_count} students
                     </p>
                   </div>
-                  <button className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm">
+                  <Link
+                    href={`/dashboard/attendance/${cls.id}`}
+                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm inline-block"
+                  >
                     Mark Attendance
-                  </button>
+                  </Link>
                 </div>
               ))}
             </div>
@@ -200,12 +204,12 @@ export default function DashboardPage() {
         <div className="mt-8">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <button className="bg-white border-2 border-blue-500 text-blue-600 rounded-lg p-4 hover:bg-blue-50 transition">
+            <Link href="/dashboard/schedules" className="bg-white border-2 border-blue-500 text-blue-600 rounded-lg p-4 hover:bg-blue-50 transition text-center">
               View Schedules
-            </button>
-            <button className="bg-white border-2 border-green-500 text-green-600 rounded-lg p-4 hover:bg-green-50 transition">
+            </Link>
+            <Link href="/dashboard/schedules" className="bg-white border-2 border-green-500 text-green-600 rounded-lg p-4 hover:bg-green-50 transition text-center">
               Mark Attendance
-            </button>
+            </Link>
             {isAdmin && (
               <>
                 <button className="bg-white border-2 border-purple-500 text-purple-600 rounded-lg p-4 hover:bg-purple-50 transition">
