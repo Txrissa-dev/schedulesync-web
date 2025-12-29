@@ -34,24 +34,30 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-brand-bg py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full">
         {/* Login Card */}
-        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-8">
-          {/* Header */}
+        <div className="bg-white rounded-2xl shadow-lg border border-orange-100 p-8">
+          {/* Logo & Header */}
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
+            {/* Logo Placeholder - Will be replaced with actual logo */}
+            <div className="flex justify-center mb-4">
+              <div className="w-16 h-16 bg-brand-primary rounded-xl flex items-center justify-center">
+                <span className="text-2xl font-bold text-white">SS</span>
+              </div>
+            </div>
+            <h1 className="text-3xl font-bold text-brand-primary mb-2">
               ScheduleSync
             </h1>
-            <p className="text-slate-600 dark:text-slate-400 text-sm">
+            <p className="text-gray-600 text-sm">
               Sign in to your account
             </p>
           </div>
 
           {/* Error Message */}
           {error && (
-            <div className="mb-6 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4">
-              <p className="text-sm text-red-800 dark:text-red-300">{error}</p>
+            <div className="mb-6 rounded-lg bg-red-50 border border-red-200 p-4">
+              <p className="text-sm text-red-800">{error}</p>
             </div>
           )}
 
@@ -61,7 +67,7 @@ export default function LoginPage() {
             <div>
               <label
                 htmlFor="email-address"
-                className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2"
+                className="block text-sm font-medium text-gray-700 mb-2"
               >
                 Email address
               </label>
@@ -71,7 +77,7 @@ export default function LoginPage() {
                 type="email"
                 autoComplete="email"
                 required
-                className="w-full px-4 py-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-all"
+                className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-secondary focus:border-transparent transition-all"
                 placeholder="admin@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -80,19 +86,24 @@ export default function LoginPage() {
 
             {/* Password Field */}
             <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2"
-              >
-                Password
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label
+                  htmlFor="password"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Password
+                </label>
+                <a href="#" className="text-sm text-brand-secondary hover:text-brand-secondary-dark transition-colors">
+                  Forgot password?
+                </a>
+              </div>
               <input
                 id="password"
                 name="password"
                 type="password"
                 autoComplete="current-password"
                 required
-                className="w-full px-4 py-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-all"
+                className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-secondary focus:border-transparent transition-all"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -103,7 +114,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-6 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-medium py-3 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md"
+              className="w-full mt-6 bg-brand-primary hover:bg-brand-primary-dark text-white font-semibold py-3 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md"
             >
               {loading ? (
                 <span className="flex items-center justify-center">
@@ -121,7 +132,7 @@ export default function LoginPage() {
         </div>
 
         {/* Footer */}
-        <p className="mt-6 text-center text-xs text-slate-500 dark:text-slate-400">
+        <p className="mt-6 text-center text-xs text-gray-600">
           Internal use only - Authorized personnel
         </p>
       </div>
