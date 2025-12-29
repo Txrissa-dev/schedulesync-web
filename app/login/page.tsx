@@ -12,14 +12,18 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    // Test Supabase connection
-    console.log('Supabase client initialized:', !!supabase)
-    console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
+    // Check if already logged in
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) {
+        window.location.href = '/dashboard'
+      }
+    }
+    checkAuth()
   }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    alert('Form submitted! Check console for details.')
     console.log('Login form submitted', { email })
     setLoading(true)
     setError(null)
@@ -36,12 +40,11 @@ export default function LoginPage() {
       if (error) throw error
 
       console.log('Sign in successful, redirecting to dashboard')
-      router.push('/dashboard')
-      router.refresh()
+      // Use window.location for a hard redirect to ensure cookies are recognized
+      window.location.href = '/dashboard'
     } catch (error: any) {
       console.error('Login error:', error)
       setError(error.message || 'An error occurred during login')
-    } finally {
       setLoading(false)
     }
   }
@@ -74,11 +77,6 @@ export default function LoginPage() {
 
           {/* Login Form */}
           <form onSubmit={handleLogin} className="space-y-5">
-            {/* Debug Info */}
-            <div className="text-xs text-gray-500 text-center">
-              Debug: Form ready, Supabase connected
-            </div>
-
             {/* Email Field */}
             <div>
               <label
