@@ -590,17 +590,17 @@ export default function ProfilePage() {
                 </div>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Teacher Name *</label>
                     <input
                       type="text"
                       value={teacherForm.full_name}
                       onChange={(e) => setTeacherForm({ ...teacherForm, full_name: e.target.value })}
                       className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
-                      placeholder="Enter full name"
+                      placeholder="Enter teacher name"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
                     <input
                       type="email"
                       value={teacherForm.email}
@@ -610,38 +610,92 @@ export default function ProfilePage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number *</label>
                     <input
                       type="tel"
                       value={teacherForm.phone}
                       onChange={(e) => setTeacherForm({ ...teacherForm, phone: e.target.value })}
                       className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
-                      placeholder="Enter phone"
+                      placeholder="Enter phone number"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Subjects (comma separated)</label>
                     <input
                       type="text"
-                      value={teacherForm.address}
-                      onChange={(e) => setTeacherForm({ ...teacherForm, address: e.target.value })}
+                      value={teacherForm.subjects}
+                      onChange={(e) => setTeacherForm({ ...teacherForm, subjects: e.target.value })}
                       className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
-                      placeholder="Enter address"
+                      placeholder="e.g., Math, Science, English"
                     />
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Initial Password *</label>
+                    <input
+                      type="password"
+                      value={teacherForm.password}
+                      onChange={(e) => setTeacherForm({ ...teacherForm, password: e.target.value })}
+                      className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+                      placeholder="Set initial password"
+                    />
+                  </div>
+
+                  {/* Assign to Centres */}
+                  <div className="pt-2 border-t border-gray-200">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Assign to Centres</label>
+                    <div className="space-y-2 max-h-32 overflow-y-auto">
+                      {centres.map((centre) => (
+                        <label key={centre.id} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={teacherCentres.includes(centre.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setTeacherCentres([...teacherCentres, centre.id])
+                              } else {
+                                setTeacherCentres(teacherCentres.filter(id => id !== centre.id))
+                              }
+                            }}
+                            className="rounded border-gray-300 text-brand-primary focus:ring-brand-secondary"
+                          />
+                          <span className="text-sm text-gray-900">{centre.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Admin Rights Toggle */}
+                  <div className="pt-2 border-t border-gray-200">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={teacherForm.has_admin_access}
+                        onChange={(e) => setTeacherForm({ ...teacherForm, has_admin_access: e.target.checked })}
+                        className="rounded border-gray-300 text-brand-primary focus:ring-brand-secondary w-5 h-5"
+                      />
+                      <div>
+                        <span className="text-sm font-medium text-gray-900">Give this account admin rights</span>
+                        <p className="text-xs text-gray-500">Admin can manage teachers, centres, and classes</p>
+                      </div>
+                    </label>
+                  </div>
+
                   <div className="flex gap-2 justify-end pt-4">
                     <button
-                      onClick={() => setShowAddTeacher(false)}
+                      onClick={() => {
+                        setShowAddTeacher(false)
+                        setTeacherCentres([])
+                      }}
                       className="px-4 py-2 text-sm font-medium text-gray-600 border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleAddTeacher}
-                      disabled={savingTeacher || !teacherForm.full_name}
+                      disabled={savingTeacher || !teacherForm.full_name || !teacherForm.email || !teacherForm.password}
                       className="px-4 py-2 text-sm font-medium text-white bg-brand-primary rounded-lg hover:bg-brand-primary-dark transition-colors disabled:opacity-50"
                     >
-                      {savingTeacher ? 'Adding...' : 'Add Teacher'}
+                      {savingTeacher ? 'Creating...' : 'Create Teacher'}
                     </button>
                   </div>
                 </div>
@@ -788,8 +842,6 @@ export default function ProfilePage() {
                       <h4 className="font-semibold text-gray-900">{centre.name}</h4>
                       <div className="mt-1 text-sm text-gray-600 space-y-1">
                         {centre.address && <p>Address: {centre.address}</p>}
-                        {centre.phone && <p>Phone: {centre.phone}</p>}
-                        {centre.email && <p>Email: {centre.email}</p>}
                       </div>
                     </div>
                     <button
@@ -797,9 +849,7 @@ export default function ProfilePage() {
                         setSelectedCentre(centre)
                         setCentreForm({
                           name: centre.name,
-                          address: centre.address || '',
-                          phone: centre.phone || '',
-                          email: centre.email || ''
+                          address: centre.address || ''
                         })
                         loadCentreNotes(centre.id)
                         setShowEditCentre(true)
@@ -848,26 +898,6 @@ export default function ProfilePage() {
                       onChange={(e) => setCentreForm({ ...centreForm, address: e.target.value })}
                       className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
                       placeholder="Enter address"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                    <input
-                      type="tel"
-                      value={centreForm.phone}
-                      onChange={(e) => setCentreForm({ ...centreForm, phone: e.target.value })}
-                      className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
-                      placeholder="Enter phone"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                    <input
-                      type="email"
-                      value={centreForm.email}
-                      onChange={(e) => setCentreForm({ ...centreForm, email: e.target.value })}
-                      className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
-                      placeholder="Enter email"
                     />
                   </div>
                   <div className="flex gap-2 justify-end pt-4">
