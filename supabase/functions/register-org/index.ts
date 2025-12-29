@@ -135,6 +135,7 @@ serve(async (req) => {
       const orgId = existingOrg.id
 
       // Create auth user
+      console.log('Attempting to create auth user with email:', email)
       const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
         email,
         password,
@@ -146,14 +147,20 @@ serve(async (req) => {
 
       if (authError) {
         console.error('Error creating auth user:', authError)
+        console.error('Auth error details:', JSON.stringify(authError, null, 2))
         return new Response(
-          JSON.stringify({ error: authError.message || 'Failed to create user' }),
+          JSON.stringify({
+            error: authError.message || 'Failed to create user',
+            details: authError
+          }),
           {
             status: 400,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           }
         )
       }
+
+      console.log('Auth user created successfully:', authData.user.id)
 
       // Create user record in public.users
       const { error: userError } = await supabaseAdmin
@@ -219,6 +226,7 @@ serve(async (req) => {
       }
 
       // Create auth user
+      console.log('Attempting to create auth user with email:', email)
       const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
         email,
         password,
@@ -230,16 +238,22 @@ serve(async (req) => {
 
       if (authError) {
         console.error('Error creating auth user:', authError)
+        console.error('Auth error details:', JSON.stringify(authError, null, 2))
         // Rollback: Delete the organisation
         await supabaseAdmin.from('organisations').delete().eq('id', newOrg.id)
         return new Response(
-          JSON.stringify({ error: authError.message || 'Failed to create user' }),
+          JSON.stringify({
+            error: authError.message || 'Failed to create user',
+            details: authError
+          }),
           {
             status: 400,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           }
         )
       }
+
+      console.log('Auth user created successfully:', authData.user.id)
 
       // Create user record in public.users
       const { error: userError } = await supabaseAdmin
