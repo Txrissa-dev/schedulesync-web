@@ -59,11 +59,11 @@ export default function DashboardLayout({
           <div className="flex justify-between h-16">
             {/* Logo & Brand */}
             <div className="flex items-center space-x-3">
-              {/* Logo Placeholder - Will be replaced with actual logo */}
-              <div className="w-10 h-10 bg-brand-primary rounded-lg flex items-center justify-center">
-                <span className="text-lg font-bold text-white">SS</span>
-              </div>
-              <h1 className="text-xl font-bold text-brand-primary">ScheduleSync</h1>
+              <img
+                src="/logo.png"
+                alt="ScheduleSync Logo"
+                className="h-10 w-auto"
+              />
             </div>
 
             {/* User Menu */}

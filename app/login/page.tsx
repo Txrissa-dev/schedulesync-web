@@ -40,15 +40,13 @@ export default function LoginPage() {
         <div className="bg-white rounded-2xl shadow-lg border border-orange-100 p-8">
           {/* Logo & Header */}
           <div className="text-center mb-8">
-            {/* Logo Placeholder - Will be replaced with actual logo */}
             <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 bg-brand-primary rounded-xl flex items-center justify-center">
-                <span className="text-2xl font-bold text-white">SS</span>
-              </div>
+              <img
+                src="/logo.png"
+                alt="ScheduleSync Logo"
+                className="h-24 w-auto"
+              />
             </div>
-            <h1 className="text-3xl font-bold text-brand-primary mb-2">
-              ScheduleSync
-            </h1>
             <p className="text-gray-600 text-sm">
               Sign in to your account
             </p>
