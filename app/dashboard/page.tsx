@@ -316,7 +316,7 @@ export default function DashboardPage() {
 
         {isTeacher && todayClasses.length > 0 && (
           <div className="mt-8">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Today's Classes</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Your Classes Today</h3>
             <div className="space-y-3">
               {todayClasses.map((cls) => (
                 <div key={cls.id} className="bg-gray-50 rounded-lg p-4 flex items-center justify-between border border-gray-200">
@@ -362,6 +362,142 @@ export default function DashboardPage() {
             )}
           </div>
         </div>
+      </div>
+
+      {/* Announcements Section */}
+      <div className="mt-6 bg-white shadow-lg rounded-xl border border-orange-100 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-900">Announcements</h3>
+          <button
+            onClick={() => setShowAnnouncementForm(!showAnnouncementForm)}
+            className="flex items-center gap-2 px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-primary-dark transition-colors text-sm font-medium"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Add Announcement
+          </button>
+        </div>
+
+        {showAnnouncementForm && (
+          <div className="mb-6 p-4 bg-orange-50 rounded-lg border border-orange-200">
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                <input
+                  type="text"
+                  value={newAnnouncement.title}
+                  onChange={(e) => setNewAnnouncement({ ...newAnnouncement, title: e.target.value })}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+                  placeholder="Enter announcement title"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
+                <textarea
+                  value={newAnnouncement.message}
+                  onChange={(e) => setNewAnnouncement({ ...newAnnouncement, message: e.target.value })}
+                  rows={3}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+                  placeholder="Enter announcement message"
+                />
+              </div>
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() => {
+                    setShowAnnouncementForm(false)
+                    setNewAnnouncement({ title: '', message: '' })
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-gray-600 border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddAnnouncement}
+                  disabled={savingAnnouncement || !newAnnouncement.title || !newAnnouncement.message}
+                  className="px-4 py-2 text-sm font-medium text-white bg-brand-primary rounded-lg hover:bg-brand-primary-dark transition-colors disabled:opacity-50"
+                >
+                  {savingAnnouncement ? 'Posting...' : 'Post Announcement'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {announcements.length === 0 ? (
+          <p className="text-center text-gray-500 py-8">No announcements yet</p>
+        ) : (
+          <div className="space-y-4">
+            {announcements.map((announcement) => (
+              <div key={announcement.id} className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-gray-900 mb-1">{announcement.title}</h4>
+                    <p className="text-sm text-gray-700 mb-2">{announcement.message}</p>
+                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                      <span>Posted by {announcement.author_name}</span>
+                      <span>•</span>
+                      <span>{new Date(announcement.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* All Classes Today Section */}
+      <div className="mt-6 bg-white shadow-lg rounded-xl border border-orange-100 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">All Classes Today</h3>
+        {allClassesToday.length === 0 ? (
+          <p className="text-center text-gray-500 py-8">No classes scheduled for today</p>
+        ) : (
+          <div className="space-y-3">
+            {allClassesToday.map((cls) => (
+              <div key={cls.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-brand-primary transition-colors">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-gray-900">{cls.name}</h4>
+                    <div className="flex flex-wrap gap-3 mt-1 text-sm text-gray-600">
+                      <span className="flex items-center">
+                        <span className="font-medium text-brand-primary mr-1">Subject:</span>
+                        {cls.subject}
+                      </span>
+                      <span className="flex items-center">
+                        <span className="font-medium text-brand-secondary mr-1">Time:</span>
+                        {cls.start_time} - {cls.end_time}
+                      </span>
+                      {cls.room && (
+                        <span className="flex items-center">
+                          <span className="font-medium text-brand-warning mr-1">Room:</span>
+                          {cls.room}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-3 mt-2 text-sm">
+                      <span className="text-gray-600">
+                        Centre: <span className="font-medium">{cls.centre_name}</span>
+                      </span>
+                      <span className="text-gray-600">
+                        Teacher: <span className="font-medium">{cls.teacher_name}</span>
+                      </span>
+                      <span className="text-gray-600">
+                        Students: <span className="font-medium text-brand-success">{cls.student_count}</span>
+                      </span>
+                    </div>
+                  </div>
+                  <Link
+                    href={`/dashboard/attendance/${cls.id}`}
+                    className="ml-4 px-4 py-2 bg-brand-success text-white rounded-lg hover:bg-green-700 text-sm inline-block transition-colors font-medium"
+                  >
+                    Attendance
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
