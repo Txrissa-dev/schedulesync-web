@@ -24,26 +24,20 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log('Login form submitted', { email })
     setLoading(true)
     setError(null)
 
     try {
-      console.log('Attempting to sign in...')
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
-      console.log('Sign in response:', { data, error })
-
       if (error) throw error
 
-      console.log('Sign in successful, redirecting to dashboard')
       // Use window.location for a hard redirect to ensure cookies are recognized
       window.location.href = '/dashboard'
     } catch (error: any) {
-      console.error('Login error:', error)
       setError(error.message || 'An error occurred during login')
       setLoading(false)
     }
