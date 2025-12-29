@@ -45,25 +45,33 @@ export default function DashboardLayout({
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-brand-bg">
+        <div className="text-lg text-gray-700">Loading...</div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <nav className="bg-white shadow-sm">
+    <div className="min-h-screen bg-brand-bg">
+      {/* Top Navigation Bar */}
+      <nav className="bg-white shadow-sm border-b border-orange-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <h1 className="text-xl font-bold text-gray-900">ScheduleSync</h1>
+            {/* Logo & Brand */}
+            <div className="flex items-center space-x-3">
+              {/* Logo Placeholder - Will be replaced with actual logo */}
+              <div className="w-10 h-10 bg-brand-primary rounded-lg flex items-center justify-center">
+                <span className="text-lg font-bold text-white">SS</span>
+              </div>
+              <h1 className="text-xl font-bold text-brand-primary">ScheduleSync</h1>
             </div>
+
+            {/* User Menu */}
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-700">{user?.email}</span>
               <button
                 onClick={handleSignOut}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700"
+                className="px-4 py-2 text-sm font-medium text-white bg-gray-600 rounded-lg hover:bg-gray-700 transition-colors"
               >
                 Sign Out
               </button>
@@ -71,6 +79,7 @@ export default function DashboardLayout({
           </div>
         </div>
       </nav>
+
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         {children}
       </main>
