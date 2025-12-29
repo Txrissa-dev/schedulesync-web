@@ -138,9 +138,9 @@ export default function DashboardPage() {
 
   return (
     <div className="px-4 py-6 sm:px-0">
-      <div className="bg-white shadow rounded-lg p-6">
+      <div className="bg-white shadow-lg rounded-xl border border-orange-100 p-6">
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">
+          <h2 className="text-2xl font-bold text-brand-primary">
             Welcome, {userProfile?.full_name || 'User'}
           </h2>
           <p className="text-sm text-gray-600">
@@ -149,28 +149,28 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="bg-blue-50 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-blue-900 mb-2">Centres</h3>
-            <p className="text-3xl font-bold text-blue-600">{stats.centres}</p>
-            <p className="text-sm text-blue-700 mt-2">Active centres</p>
+          <div className="bg-orange-50 rounded-xl p-6 border border-orange-100">
+            <h3 className="text-lg font-semibold text-brand-primary mb-2">Centres</h3>
+            <p className="text-3xl font-bold text-brand-primary">{stats.centres}</p>
+            <p className="text-sm text-orange-700 mt-2">Active centres</p>
           </div>
 
-          <div className="bg-green-50 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-green-900 mb-2">Students</h3>
-            <p className="text-3xl font-bold text-green-600">{stats.students}</p>
+          <div className="bg-green-50 rounded-xl p-6 border border-green-100">
+            <h3 className="text-lg font-semibold text-brand-success mb-2">Students</h3>
+            <p className="text-3xl font-bold text-brand-success">{stats.students}</p>
             <p className="text-sm text-green-700 mt-2">Enrolled students</p>
           </div>
 
-          <div className="bg-purple-50 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-purple-900 mb-2">Teachers</h3>
-            <p className="text-3xl font-bold text-purple-600">{stats.teachers}</p>
-            <p className="text-sm text-purple-700 mt-2">Active teachers</p>
+          <div className="bg-blue-50 rounded-xl p-6 border border-blue-100">
+            <h3 className="text-lg font-semibold text-brand-secondary mb-2">Teachers</h3>
+            <p className="text-3xl font-bold text-brand-secondary">{stats.teachers}</p>
+            <p className="text-sm text-blue-700 mt-2">Active teachers</p>
           </div>
 
-          <div className="bg-orange-50 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-orange-900 mb-2">Classes</h3>
-            <p className="text-3xl font-bold text-orange-600">{stats.classes}</p>
-            <p className="text-sm text-orange-700 mt-2">Total classes</p>
+          <div className="bg-amber-50 rounded-xl p-6 border border-amber-100">
+            <h3 className="text-lg font-semibold text-brand-warning mb-2">Classes</h3>
+            <p className="text-3xl font-bold text-brand-warning">{stats.classes}</p>
+            <p className="text-sm text-amber-700 mt-2">Total classes</p>
           </div>
         </div>
 
@@ -179,7 +179,7 @@ export default function DashboardPage() {
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Today's Classes</h3>
             <div className="space-y-3">
               {todayClasses.map((cls) => (
-                <div key={cls.id} className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
+                <div key={cls.id} className="bg-gray-50 rounded-lg p-4 flex items-center justify-between border border-gray-200">
                   <div>
                     <h4 className="font-semibold text-gray-900">{cls.name}</h4>
                     <p className="text-sm text-gray-600">
@@ -191,7 +191,7 @@ export default function DashboardPage() {
                   </div>
                   <Link
                     href={`/dashboard/attendance/${cls.id}`}
-                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm inline-block"
+                    className="px-4 py-2 bg-brand-success text-white rounded-lg hover:bg-green-700 text-sm inline-block transition-colors font-medium"
                   >
                     Mark Attendance
                   </Link>
@@ -204,18 +204,18 @@ export default function DashboardPage() {
         <div className="mt-8">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Link href="/dashboard/schedules" className="bg-white border-2 border-blue-500 text-blue-600 rounded-lg p-4 hover:bg-blue-50 transition text-center">
+            <Link href="/dashboard/schedules" className="bg-white border-2 border-brand-secondary text-brand-secondary rounded-xl p-4 hover:bg-blue-50 transition text-center font-medium">
               View Schedules
             </Link>
-            <Link href="/dashboard/schedules" className="bg-white border-2 border-green-500 text-green-600 rounded-lg p-4 hover:bg-green-50 transition text-center">
+            <Link href="/dashboard/schedules" className="bg-white border-2 border-brand-success text-brand-success rounded-xl p-4 hover:bg-green-50 transition text-center font-medium">
               Mark Attendance
             </Link>
             {isAdmin && (
               <>
-                <button className="bg-white border-2 border-purple-500 text-purple-600 rounded-lg p-4 hover:bg-purple-50 transition">
+                <button className="bg-white border-2 border-brand-warning text-brand-warning rounded-xl p-4 hover:bg-amber-50 transition font-medium">
                   Manage Staff
                 </button>
-                <button className="bg-white border-2 border-orange-500 text-orange-600 rounded-lg p-4 hover:bg-orange-50 transition">
+                <button className="bg-white border-2 border-brand-primary text-brand-primary rounded-xl p-4 hover:bg-orange-50 transition font-medium">
                   Reports
                 </button>
               </>
