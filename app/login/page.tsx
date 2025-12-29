@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
@@ -11,22 +11,34 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  useEffect(() => {
+    // Test Supabase connection
+    console.log('Supabase client initialized:', !!supabase)
+    console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
+  }, [])
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    console.log('Login form submitted', { email })
     setLoading(true)
     setError(null)
 
     try {
+      console.log('Attempting to sign in...')
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
+      console.log('Sign in response:', { data, error })
+
       if (error) throw error
 
+      console.log('Sign in successful, redirecting to dashboard')
       router.push('/dashboard')
       router.refresh()
     } catch (error: any) {
+      console.error('Login error:', error)
       setError(error.message || 'An error occurred during login')
     } finally {
       setLoading(false)
@@ -61,6 +73,11 @@ export default function LoginPage() {
 
           {/* Login Form */}
           <form onSubmit={handleLogin} className="space-y-5">
+            {/* Debug Info */}
+            <div className="text-xs text-gray-500 text-center">
+              Debug: Form ready, Supabase connected
+            </div>
+
             {/* Email Field */}
             <div>
               <label
