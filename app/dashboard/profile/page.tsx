@@ -55,9 +55,10 @@ export default function ProfilePage() {
     const fetchProfileData = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser()
+        console.log('Auth user:', user)
         if (!user) return
 
-        const { data: profileData } = await supabase
+        const { data: profileData, error: profileError } = await supabase
           .from('users')
           .select(`
             id,
@@ -71,6 +72,9 @@ export default function ProfilePage() {
           `)
           .eq('auth_id', user.id)
           .single()
+
+        console.log('Profile data:', profileData)
+        console.log('Profile error:', profileError)
 
         if (profileData) {
           const formattedProfile = {
