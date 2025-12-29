@@ -136,8 +136,27 @@ export default function DashboardPage() {
   const isAdmin = userProfile?.has_admin_access || userProfile?.is_super_admin
   const isTeacher = userProfile?.teacher_id !== null
 
+  // Format today's date
+  const today = new Date()
+  const dateString = today.toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  })
+
   return (
     <div className="px-4 py-6 sm:px-0">
+      {/* Date Header */}
+      <div className="mb-6">
+        <div className="flex items-baseline gap-2">
+          <h1 className="text-2xl font-bold text-brand-primary">{dateString}</h1>
+          {isAdmin && (
+            <span className="text-sm text-gray-600">(Admin View - All Teachers)</span>
+          )}
+        </div>
+      </div>
+
       <div className="bg-white shadow-lg rounded-xl border border-orange-100 p-6">
         <div className="mb-6">
           <h2 className="text-2xl font-bold text-brand-primary">
