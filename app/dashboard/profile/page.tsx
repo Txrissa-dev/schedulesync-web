@@ -527,8 +527,8 @@ export default function ProfilePage() {
             <p className="text-gray-900">{profile.email}</p>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Organisation ID</label>
-            <p className="text-gray-900">{profile.organisation_id || 'Not assigned'}</p>
+            <label className="block text-sm font-medium text-gray-700">Organisation</label>
+            <p className="text-gray-900">{organisation?.name || 'Not assigned'}</p>
           </div>
         </div>
       </div>
