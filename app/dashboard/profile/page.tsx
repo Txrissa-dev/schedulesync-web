@@ -234,6 +234,11 @@ export default function ProfilePage() {
       return
     }
 
+    if (teacherForm.password.length < 8) {
+      alert('Password must be at least 8 characters long')
+      return
+    }
+
     setSavingTeacher(true)
     try {
       // Call edge function to create teacher with auth account
@@ -250,9 +255,18 @@ export default function ProfilePage() {
         }
       })
 
+      console.log('Function response:', { functionData, functionError })
+
       if (functionError) {
         console.error('Function error:', functionError)
-        alert(functionError.message || 'Failed to create teacher')
+        alert(`Failed to create teacher: ${functionError.message}`)
+        return
+      }
+
+      // Check if the response contains an error field (returned from edge function)
+      if (functionData?.error) {
+        console.error('Edge function error:', functionData.error)
+        alert(`Failed to create teacher: ${functionData.error}`)
         return
       }
 
@@ -262,6 +276,8 @@ export default function ProfilePage() {
         setTeacherCentres([])
         setShowAddTeacher(false)
         alert('Teacher created successfully!')
+      } else {
+        alert('Unexpected response from server')
       }
     } catch (error: any) {
       console.error('Error adding teacher:', error)
