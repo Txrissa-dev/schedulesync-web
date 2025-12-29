@@ -61,8 +61,14 @@ interface TeacherNotification {
   created_at: string
 }
 
+interface Organisation {
+  id: string
+  name: string
+}
+
 export default function ProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [organisation, setOrganisation] = useState<Organisation | null>(null)
   const [teachers, setTeachers] = useState<Teacher[]>([])
   const [centres, setCentres] = useState<Centre[]>([])
   const [myNotes, setMyNotes] = useState<TeacherNote[]>([])
@@ -148,6 +154,19 @@ export default function ProfilePage() {
             ...profileData,
             email: user.email || ''
           })
+
+          // Fetch organisation if user has one
+          if (profileData.organisation_id) {
+            const { data: orgData } = await supabase
+              .from('organisations')
+              .select('id, name')
+              .eq('id', profileData.organisation_id)
+              .single()
+
+            if (orgData) {
+              setOrganisation(orgData)
+            }
+          }
 
           // If admin, fetch teachers and centres
           if (profileData.has_admin_access || profileData.is_super_admin) {
