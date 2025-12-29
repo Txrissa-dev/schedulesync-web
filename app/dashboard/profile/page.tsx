@@ -77,7 +77,10 @@ export default function ProfilePage() {
     full_name: '',
     email: '',
     phone: '',
-    address: ''
+    address: '',
+    subjects: '',
+    password: '',
+    has_admin_access: false
   })
   const [teacherCentres, setTeacherCentres] = useState<string[]>([])
   const [savingTeacher, setSavingTeacher] = useState(false)
@@ -88,9 +91,7 @@ export default function ProfilePage() {
   const [showEditCentre, setShowEditCentre] = useState(false)
   const [centreForm, setCentreForm] = useState({
     name: '',
-    address: '',
-    phone: '',
-    email: ''
+    address: ''
   })
   const [centreNotes, setCentreNotes] = useState<CentreNote[]>([])
   const [newCentreNote, setNewCentreNote] = useState('')
@@ -209,32 +210,43 @@ export default function ProfilePage() {
   }, [])
 
   const handleAddTeacher = async () => {
-    if (!teacherForm.full_name || !profile?.organisation_id) return
+    if (!teacherForm.full_name || !teacherForm.email || !teacherForm.password || !profile?.organisation_id) {
+      alert('Please fill in all required fields (name, email, and password)')
+      return
+    }
 
     setSavingTeacher(true)
     try {
-      const { data, error } = await supabase
-        .from('teachers')
-        .insert({
+      // Call edge function to create teacher with auth account
+      const { data: functionData, error: functionError } = await supabase.functions.invoke('create-teacher', {
+        body: {
           full_name: teacherForm.full_name,
-          email: teacherForm.email || null,
+          email: teacherForm.email,
           phone: teacherForm.phone || null,
-          address: teacherForm.address || null,
-          organisation_id: profile.organisation_id
-        })
-        .select()
-        .single()
+          subjects: teacherForm.subjects || null,
+          password: teacherForm.password,
+          has_admin_access: teacherForm.has_admin_access,
+          organisation_id: profile.organisation_id,
+          centre_ids: teacherCentres
+        }
+      })
 
-      if (error) throw error
-
-      if (data) {
-        setTeachers([...teachers, data])
-        setTeacherForm({ full_name: '', email: '', phone: '', address: '' })
-        setShowAddTeacher(false)
+      if (functionError) {
+        console.error('Function error:', functionError)
+        alert(functionError.message || 'Failed to create teacher')
+        return
       }
-    } catch (error) {
+
+      if (functionData?.teacher) {
+        setTeachers([...teachers, functionData.teacher])
+        setTeacherForm({ full_name: '', email: '', phone: '', address: '', subjects: '', password: '', has_admin_access: false })
+        setTeacherCentres([])
+        setShowAddTeacher(false)
+        alert('Teacher created successfully!')
+      }
+    } catch (error: any) {
       console.error('Error adding teacher:', error)
-      alert('Failed to add teacher')
+      alert(error.message || 'Failed to add teacher')
     } finally {
       setSavingTeacher(false)
     }
@@ -320,8 +332,8 @@ export default function ProfilePage() {
         .insert({
           name: centreForm.name,
           address: centreForm.address || null,
-          phone: centreForm.phone || null,
-          email: centreForm.email || null,
+          phone: null,
+          email: null,
           organisation_id: profile.organisation_id
         })
         .select()
@@ -331,7 +343,7 @@ export default function ProfilePage() {
 
       if (data) {
         setCentres([...centres, data])
-        setCentreForm({ name: '', address: '', phone: '', email: '' })
+        setCentreForm({ name: '', address: '' })
         setShowAddCentre(false)
       }
     } catch (error) {
@@ -351,9 +363,7 @@ export default function ProfilePage() {
         .from('centres')
         .update({
           name: centreForm.name,
-          address: centreForm.address || null,
-          phone: centreForm.phone || null,
-          email: centreForm.email || null
+          address: centreForm.address || null
         })
         .eq('id', selectedCentre.id)
 
@@ -361,7 +371,7 @@ export default function ProfilePage() {
 
       setCentres(centres.map(c =>
         c.id === selectedCentre.id
-          ? { ...c, ...centreForm }
+          ? { ...c, name: centreForm.name, address: centreForm.address }
           : c
       ))
       setShowEditCentre(false)
