@@ -28,14 +28,28 @@ interface TodayClass {
   end_time: string
   room: string | null
   centre_name: string
+  teacher_name: string
   student_count: number
+}
+
+interface Announcement {
+  id: string
+  title: string
+  message: string
+  created_at: string
+  author_name: string
 }
 
 export default function DashboardPage() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [stats, setStats] = useState<DashboardStats>({ centres: 0, students: 0, teachers: 0, classes: 0 })
   const [todayClasses, setTodayClasses] = useState<TodayClass[]>([])
+  const [allClassesToday, setAllClassesToday] = useState<TodayClass[]>([])
+  const [announcements, setAnnouncements] = useState<Announcement[]>([])
   const [loading, setLoading] = useState(true)
+  const [showAnnouncementForm, setShowAnnouncementForm] = useState(false)
+  const [newAnnouncement, setNewAnnouncement] = useState({ title: '', message: '' })
+  const [savingAnnouncement, setSavingAnnouncement] = useState(false)
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -99,6 +113,7 @@ export default function DashboardPage() {
               end_time,
               room,
               centres:centre_id (name),
+              teachers:teacher_id (full_name),
               class_students (student_id)
             `)
             .eq('teacher_id', profile.teacher_id)
@@ -113,10 +128,72 @@ export default function DashboardPage() {
               end_time: c.end_time,
               room: c.room,
               centre_name: c.centres?.name || 'Unknown',
+              teacher_name: c.teachers?.full_name || 'Unknown',
               student_count: c.class_students?.length || 0
             }))
             setTodayClasses(formattedClasses)
           }
+        }
+
+        // Fetch all classes for today (for admin view)
+        const today = new Date()
+        const dayOfWeek = today.getDay()
+
+        const { data: allClasses } = await supabase
+          .from('classes')
+          .select(`
+            id,
+            name,
+            subject,
+            start_time,
+            end_time,
+            room,
+            centres:centre_id (name),
+            teachers:teacher_id (full_name),
+            class_students (student_id)
+          `)
+          .eq('organisation_id', profile.organisation_id)
+          .eq('day_of_week', dayOfWeek)
+          .order('start_time')
+
+        if (allClasses) {
+          const formattedAllClasses = allClasses.map((c: any) => ({
+            id: c.id,
+            name: c.name,
+            subject: c.subject,
+            start_time: c.start_time,
+            end_time: c.end_time,
+            room: c.room,
+            centre_name: c.centres?.name || 'Unknown',
+            teacher_name: c.teachers?.full_name || 'Unknown',
+            student_count: c.class_students?.length || 0
+          }))
+          setAllClassesToday(formattedAllClasses)
+        }
+
+        // Fetch announcements
+        const { data: announcementsData } = await supabase
+          .from('announcements')
+          .select(`
+            id,
+            title,
+            message,
+            created_at,
+            users:author_id (full_name)
+          `)
+          .eq('organisation_id', profile.organisation_id)
+          .order('created_at', { ascending: false })
+          .limit(5)
+
+        if (announcementsData) {
+          const formattedAnnouncements = announcementsData.map((a: any) => ({
+            id: a.id,
+            title: a.title,
+            message: a.message,
+            created_at: a.created_at,
+            author_name: a.users?.full_name || 'Unknown'
+          }))
+          setAnnouncements(formattedAnnouncements)
         }
 
       } catch (error) {
@@ -128,6 +205,50 @@ export default function DashboardPage() {
 
     fetchDashboardData()
   }, [])
+
+  const handleAddAnnouncement = async () => {
+    if (!newAnnouncement.title || !newAnnouncement.message || !userProfile) return
+
+    setSavingAnnouncement(true)
+    try {
+      const { data, error } = await supabase
+        .from('announcements')
+        .insert({
+          title: newAnnouncement.title,
+          message: newAnnouncement.message,
+          organisation_id: userProfile.organisation_id,
+          author_id: userProfile.id
+        })
+        .select(`
+          id,
+          title,
+          message,
+          created_at,
+          users:author_id (full_name)
+        `)
+        .single()
+
+      if (error) throw error
+
+      if (data) {
+        const newAnnouncementData = {
+          id: data.id,
+          title: data.title,
+          message: data.message,
+          created_at: data.created_at,
+          author_name: (data as any).users?.full_name || userProfile.full_name || 'Unknown'
+        }
+        setAnnouncements([newAnnouncementData, ...announcements])
+        setNewAnnouncement({ title: '', message: '' })
+        setShowAnnouncementForm(false)
+      }
+    } catch (error) {
+      console.error('Error adding announcement:', error)
+      alert('Failed to add announcement')
+    } finally {
+      setSavingAnnouncement(false)
+    }
+  }
 
   if (loading) {
     return <div className="text-center py-12">Loading dashboard...</div>
