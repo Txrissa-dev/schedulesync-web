@@ -1,8 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import Link from 'next/link'
 
 export default function DashboardLayout({
   children,
@@ -10,6 +11,7 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const router = useRouter()
+  const pathname = usePathname()
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<any>(null)
 
@@ -51,6 +53,13 @@ export default function DashboardLayout({
     )
   }
 
+  const tabs = [
+    { name: 'Today', href: '/dashboard' },
+    { name: 'Schedule', href: '/dashboard/schedules' },
+    { name: 'Classes', href: '/dashboard/classes' },
+    { name: 'Profile', href: '/dashboard/profile' },
+  ]
+
   return (
     <div className="min-h-screen bg-brand-bg">
       {/* Top Navigation Bar */}
@@ -79,6 +88,32 @@ export default function DashboardLayout({
           </div>
         </div>
       </nav>
+
+      {/* Tabs Navigation */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <nav className="flex space-x-8" aria-label="Tabs">
+            {tabs.map((tab) => {
+              const isActive = pathname === tab.href
+              return (
+                <Link
+                  key={tab.name}
+                  href={tab.href}
+                  className={`
+                    py-4 px-1 border-b-2 font-medium text-sm transition-colors
+                    ${isActive
+                      ? 'border-brand-primary text-brand-primary'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }
+                  `}
+                >
+                  {tab.name}
+                </Link>
+              )
+            })}
+          </nav>
+        </div>
+      </div>
 
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         {children}
