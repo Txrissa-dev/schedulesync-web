@@ -71,13 +71,25 @@ serve(async (req) => {
 
     // 1. Create teacher record
     console.log('Creating teacher record...')
+
+    // Convert subjects string to array if needed
+    let subjectsArray = null
+    if (subjects) {
+      if (typeof subjects === 'string') {
+        // Split comma-separated string into array and trim whitespace
+        subjectsArray = subjects.split(',').map((s: string) => s.trim()).filter((s: string) => s.length > 0)
+      } else if (Array.isArray(subjects)) {
+        subjectsArray = subjects
+      }
+    }
+
     const { data: teacher, error: teacherError } = await supabaseAdmin
       .from('teachers')
       .insert({
         full_name,
         email,
         phone,
-        subjects,
+        subjects: subjectsArray,
         organisation_id
       })
       .select()
