@@ -19,6 +19,7 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    alert('Form submitted! Check console for details.')
     console.log('Login form submitted', { email })
     setLoading(true)
     setError(null)
