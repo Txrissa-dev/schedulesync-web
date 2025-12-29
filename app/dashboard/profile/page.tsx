@@ -6,50 +6,14 @@ import Link from 'next/link'
 
 interface UserProfile {
   id: string
-  full_name: string | null
+  username: string | null
   email: string
   organisation_id: string | null
-  has_admin_access: boolean
-  is_super_admin: boolean
-  teacher_id: string | null
-  organisation?: {
-    name: string
-  }
-  teacher?: {
-    phone: string | null
-    address: string | null
-  }
-}
-
-interface Teacher {
-  id: string
-  full_name: string
-  email: string | null
-  phone: string | null
-  address: string | null
-  user_id: string | null
-}
-
-interface Centre {
-  id: string
-  name: string
-  address: string | null
-  phone: string | null
-  email: string | null
 }
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null)
-  const [teachers, setTeachers] = useState<Teacher[]>([])
-  const [centres, setCentres] = useState<Centre[]>([])
   const [loading, setLoading] = useState(true)
-  const [editingContact, setEditingContact] = useState(false)
-  const [email, setEmail] = useState('')
-  const [phone, setPhone] = useState('')
-  const [saving, setSaving] = useState(false)
-  const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null)
-  const [showAddTeacher, setShowAddTeacher] = useState(false)
-  const [showAddCentre, setShowAddCentre] = useState(false)
 
   useEffect(() => {
     const fetchProfileData = async () => {
@@ -60,16 +24,7 @@ export default function ProfilePage() {
 
         const { data: profileData, error: profileError } = await supabase
           .from('users')
-          .select(`
-            id,
-            full_name,
-            organisation_id,
-            has_admin_access,
-            is_super_admin,
-            teacher_id,
-            organisations:organisation_id (name),
-            teachers:teacher_id (phone, address)
-          `)
+          .select('id, username, organisation_id')
           .eq('auth_id', user.id)
           .single()
 
@@ -77,44 +32,10 @@ export default function ProfilePage() {
         console.log('Profile error:', profileError)
 
         if (profileData) {
-          const formattedProfile = {
+          setProfile({
             ...profileData,
-            email: user.email || '',
-            organisation: profileData.organisations,
-            teacher: profileData.teachers
-          }
-          setProfile(formattedProfile)
-          setEmail(user.email || '')
-          setPhone(profileData.teachers?.phone || '')
-
-          // Fetch teachers if admin
-          if ((profileData.has_admin_access || profileData.is_super_admin) && profileData.organisation_id) {
-            const { data: teachersData } = await supabase
-              .from('teachers')
-              .select(`
-                id,
-                full_name,
-                email,
-                phone,
-                address,
-                user_id
-              `)
-              .eq('organisation_id', profileData.organisation_id)
-
-            if (teachersData) {
-              setTeachers(teachersData)
-            }
-
-            // Fetch centres
-            const { data: centresData } = await supabase
-              .from('centres')
-              .select('id, name, address, phone, email')
-              .eq('organisation_id', profileData.organisation_id)
-
-            if (centresData) {
-              setCentres(centresData)
-            }
-          }
+            email: user.email || ''
+          })
         }
       } catch (error) {
         console.error('Error fetching profile:', error)
