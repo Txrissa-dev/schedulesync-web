@@ -256,9 +256,22 @@ export default function ClassesPage() {
 
   return (
     <div className="px-4 py-6 sm:px-0">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-brand-primary">All Classes</h2>
-        <p className="text-sm text-gray-600 mt-1">View and manage your classes</p>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-brand-primary">All Classes</h2>
+          <p className="text-sm text-gray-600 mt-1">View and manage your classes</p>
+        </div>
+        {isAdmin && (
+          <button
+            onClick={() => setShowAddClass(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-primary-dark transition-colors text-sm font-medium"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Add Class
+          </button>
+        )}
       </div>
 
       {classes.length === 0 ? (
@@ -303,7 +316,7 @@ export default function ClassesPage() {
                       <div className="flex flex-wrap gap-3 mt-2 text-sm">
                         {cls.teacher && (
                           <span className="text-gray-600">
-                            Teacher: <span className="font-medium">{cls.teacher.full_name}</span>
+                            Teacher: <span className="font-medium">{cls.teacher.name}</span>
                           </span>
                         )}
                         <span className="text-gray-600">
