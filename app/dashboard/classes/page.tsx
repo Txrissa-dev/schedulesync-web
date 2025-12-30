@@ -75,11 +75,14 @@ export default function ClassesPage() {
         // Fetch user profile to get organisation_id
         const { data: profile } = await supabase
           .from('users')
-          .select('organisation_id, teacher_id, has_admin_access')
+          .select('organisation_id, teacher_id, has_admin_access, is_super_admin')
           .eq('auth_id', user.id)
           .single()
 
         if (!profile?.organisation_id) return
+
+        setIsAdmin(profile.has_admin_access || profile.is_super_admin || false)
+        setOrganisationId(profile.organisation_id)
 
         // Build query based on user role
         let query = supabase
@@ -92,7 +95,8 @@ export default function ClassesPage() {
             start_time,
             end_time,
             room,
-            teachers:teacher_id (full_name),
+            total_lessons,
+            teachers:teacher_id (name),
             centres:centre_id (name),
             class_students (student_id)
           `)
@@ -114,11 +118,39 @@ export default function ClassesPage() {
             start_time: c.start_time,
             end_time: c.end_time,
             room: c.room,
+            total_lessons: c.total_lessons,
             teacher: c.teachers,
             centre: c.centres,
             student_count: c.class_students?.length || 0
           }))
           setClasses(formattedClasses)
+        }
+
+        // If admin, fetch teachers, centres, and students for the add form
+        if (profile.has_admin_access || profile.is_super_admin) {
+          // Fetch teachers
+          const { data: teachersData } = await supabase
+            .from('teachers')
+            .select('id, name, email')
+            .eq('organisation_id', profile.organisation_id)
+
+          if (teachersData) setTeachers(teachersData)
+
+          // Fetch centres
+          const { data: centresData } = await supabase
+            .from('centres')
+            .select('id, name')
+            .eq('organisation_id', profile.organisation_id)
+
+          if (centresData) setCentres(centresData)
+
+          // Fetch students
+          const { data: studentsData } = await supabase
+            .from('students')
+            .select('id, name')
+            .eq('organisation_id', profile.organisation_id)
+
+          if (studentsData) setStudents(studentsData)
         }
       } catch (error) {
         console.error('Error fetching classes:', error)
@@ -129,6 +161,86 @@ export default function ClassesPage() {
 
     fetchClasses()
   }, [])
+
+  const handleAddClass = async () => {
+    if (!classForm.name || !classForm.subject || !classForm.teacher_id || !classForm.centre_id ||
+        !classForm.day_of_week || !classForm.start_time || !classForm.end_time || !organisationId) {
+      alert('Please fill in all required fields')
+      return
+    }
+
+    if (selectedStudents.length === 0) {
+      alert('Please select at least one student')
+      return
+    }
+
+    setSavingClass(true)
+    try {
+      // 1. Create the class
+      const { data: newClass, error: classError } = await supabase
+        .from('classes')
+        .insert({
+          name: classForm.name,
+          subject: classForm.subject,
+          teacher_id: classForm.teacher_id,
+          centre_id: classForm.centre_id,
+          day_of_week: parseInt(classForm.day_of_week),
+          start_time: classForm.start_time,
+          end_time: classForm.end_time,
+          room: classForm.room || null,
+          total_lessons: classForm.total_lessons ? parseInt(classForm.total_lessons) : null,
+          organisation_id: organisationId
+        })
+        .select()
+        .single()
+
+      if (classError) {
+        console.error('Error creating class:', classError)
+        alert(`Failed to create class: ${classError.message}`)
+        return
+      }
+
+      // 2. Assign students to the class
+      if (newClass && selectedStudents.length > 0) {
+        const studentAssignments = selectedStudents.map(studentId => ({
+          class_id: newClass.id,
+          student_id: studentId
+        }))
+
+        const { error: studentsError } = await supabase
+          .from('class_students')
+          .insert(studentAssignments)
+
+        if (studentsError) {
+          console.error('Error assigning students:', studentsError)
+          alert('Class created but failed to assign some students')
+        }
+      }
+
+      // Refresh the classes list
+      window.location.reload()
+
+      alert('Class created successfully!')
+      setShowAddClass(false)
+      setClassForm({
+        name: '',
+        subject: '',
+        teacher_id: '',
+        centre_id: '',
+        day_of_week: '',
+        start_time: '',
+        end_time: '',
+        room: '',
+        total_lessons: '',
+      })
+      setSelectedStudents([])
+    } catch (error: any) {
+      console.error('Error adding class:', error)
+      alert(error.message || 'Failed to add class')
+    } finally {
+      setSavingClass(false)
+    }
+  }
 
   if (loading) {
     return <div className="text-center py-12">Loading classes...</div>
