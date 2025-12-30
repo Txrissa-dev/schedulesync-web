@@ -242,7 +242,7 @@ export default function ProfilePage() {
     setSavingTeacher(true)
     try {
       // Call edge function to create teacher with auth account
-      const { data: functionData, error: functionError } = await supabase.functions.invoke('create-teacher', {
+      const response = await supabase.functions.invoke('create-teacher', {
         body: {
           full_name: teacherForm.full_name,
           email: teacherForm.email,
@@ -255,32 +255,38 @@ export default function ProfilePage() {
         }
       })
 
-      console.log('Function response:', { functionData, functionError })
+      console.log('Full function response:', response)
+      console.log('Response data:', response.data)
+      console.log('Response error:', response.error)
 
-      if (functionError) {
-        console.error('Function error:', functionError)
-        alert(`Failed to create teacher: ${functionError.message}`)
+      // Check for function invocation error
+      if (response.error) {
+        console.error('Function invocation error:', response.error)
+        const errorMsg = response.error.message || 'Unknown error'
+        alert(`Failed to create teacher: ${errorMsg}`)
         return
       }
 
       // Check if the response contains an error field (returned from edge function)
-      if (functionData?.error) {
-        console.error('Edge function error:', functionData.error)
-        alert(`Failed to create teacher: ${functionData.error}`)
+      if (response.data?.error) {
+        console.error('Edge function returned error:', response.data.error)
+        alert(`Failed to create teacher: ${response.data.error}`)
         return
       }
 
-      if (functionData?.teacher) {
-        setTeachers([...teachers, functionData.teacher])
+      // Check for success
+      if (response.data?.teacher) {
+        setTeachers([...teachers, response.data.teacher])
         setTeacherForm({ full_name: '', email: '', phone: '', address: '', subjects: '', password: '', has_admin_access: false })
         setTeacherCentres([])
         setShowAddTeacher(false)
         alert('Teacher created successfully!')
       } else {
-        alert('Unexpected response from server')
+        console.error('Unexpected response structure:', response.data)
+        alert('Unexpected response from server. Check console for details.')
       }
     } catch (error: any) {
-      console.error('Error adding teacher:', error)
+      console.error('Exception while adding teacher:', error)
       alert(error.message || 'Failed to add teacher')
     } finally {
       setSavingTeacher(false)
