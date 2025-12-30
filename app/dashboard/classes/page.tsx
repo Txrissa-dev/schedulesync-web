@@ -13,12 +13,29 @@ interface Class {
   end_time: string
   room: string | null
   teacher: {
-    full_name: string
+    name: string
   } | null
   centre: {
     name: string
   } | null
   student_count: number
+  total_lessons: number | null
+}
+
+interface Teacher {
+  id: string
+  name: string
+  email: string | null
+}
+
+interface Centre {
+  id: string
+  name: string
+}
+
+interface Student {
+  id: string
+  name: string
 }
 
 const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
@@ -26,6 +43,28 @@ const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Fri
 export default function ClassesPage() {
   const [classes, setClasses] = useState<Class[]>([])
   const [loading, setLoading] = useState(true)
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [organisationId, setOrganisationId] = useState<string | null>(null)
+
+  // Add Class Modal States
+  const [showAddClass, setShowAddClass] = useState(false)
+  const [teachers, setTeachers] = useState<Teacher[]>([])
+  const [centres, setCentres] = useState<Centre[]>([])
+  const [students, setStudents] = useState<Student[]>([])
+  const [savingClass, setSavingClass] = useState(false)
+
+  const [classForm, setClassForm] = useState({
+    name: '',
+    subject: '',
+    teacher_id: '',
+    centre_id: '',
+    day_of_week: '',
+    start_time: '',
+    end_time: '',
+    room: '',
+    total_lessons: '',
+  })
+  const [selectedStudents, setSelectedStudents] = useState<string[]>([])
 
   useEffect(() => {
     const fetchClasses = async () => {
