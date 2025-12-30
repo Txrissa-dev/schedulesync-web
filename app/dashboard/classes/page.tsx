@@ -337,6 +337,197 @@ export default function ClassesPage() {
           ))}
         </div>
       )}
+
+      {/* Add Class Modal */}
+      {showAddClass && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Add New Class</h3>
+              <button
+                onClick={() => setShowAddClass(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Class Name *</label>
+                <input
+                  type="text"
+                  value={classForm.name}
+                  onChange={(e) => setClassForm({ ...classForm, name: e.target.value })}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+                  placeholder="e.g., Math 101"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Subject *</label>
+                <input
+                  type="text"
+                  value={classForm.subject}
+                  onChange={(e) => setClassForm({ ...classForm, subject: e.target.value })}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+                  placeholder="e.g., Mathematics"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Teacher *</label>
+                  <select
+                    value={classForm.teacher_id}
+                    onChange={(e) => setClassForm({ ...classForm, teacher_id: e.target.value })}
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+                  >
+                    <option value="">Select Teacher</option>
+                    {teachers.map((teacher) => (
+                      <option key={teacher.id} value={teacher.id}>
+                        {teacher.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Centre *</label>
+                  <select
+                    value={classForm.centre_id}
+                    onChange={(e) => setClassForm({ ...classForm, centre_id: e.target.value })}
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+                  >
+                    <option value="">Select Centre</option>
+                    {centres.map((centre) => (
+                      <option key={centre.id} value={centre.id}>
+                        {centre.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Day *</label>
+                  <select
+                    value={classForm.day_of_week}
+                    onChange={(e) => setClassForm({ ...classForm, day_of_week: e.target.value })}
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+                  >
+                    <option value="">Select Day</option>
+                    {daysOfWeek.map((day, index) => (
+                      <option key={index} value={index}>
+                        {day}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Start Time *</label>
+                  <input
+                    type="time"
+                    value={classForm.start_time}
+                    onChange={(e) => setClassForm({ ...classForm, start_time: e.target.value })}
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">End Time *</label>
+                  <input
+                    type="time"
+                    value={classForm.end_time}
+                    onChange={(e) => setClassForm({ ...classForm, end_time: e.target.value })}
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Room</label>
+                  <input
+                    type="text"
+                    value={classForm.room}
+                    onChange={(e) => setClassForm({ ...classForm, room: e.target.value })}
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+                    placeholder="e.g., Room 101"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Number of Lessons</label>
+                  <input
+                    type="number"
+                    value={classForm.total_lessons}
+                    onChange={(e) => setClassForm({ ...classForm, total_lessons: e.target.value })}
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+                    placeholder="e.g., 12"
+                    min="1"
+                  />
+                </div>
+              </div>
+
+              {/* Students Selection */}
+              <div className="pt-2 border-t border-gray-200">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Assign Students * ({selectedStudents.length} selected)
+                </label>
+                <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-2 space-y-1">
+                  {students.length === 0 ? (
+                    <p className="text-sm text-gray-500 text-center py-4">No students available</p>
+                  ) : (
+                    students.map((student) => (
+                      <label
+                        key={student.id}
+                        className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedStudents.includes(student.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedStudents([...selectedStudents, student.id])
+                            } else {
+                              setSelectedStudents(selectedStudents.filter(id => id !== student.id))
+                            }
+                          }}
+                          className="rounded border-gray-300 text-brand-primary focus:ring-brand-secondary"
+                        />
+                        <span className="text-sm text-gray-900">{student.name}</span>
+                      </label>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              <div className="flex gap-2 justify-end pt-4">
+                <button
+                  onClick={() => {
+                    setShowAddClass(false)
+                    setSelectedStudents([])
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-gray-600 border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddClass}
+                  disabled={savingClass}
+                  className="px-4 py-2 text-sm font-medium text-white bg-brand-primary rounded-lg hover:bg-brand-primary-dark transition-colors disabled:opacity-50"
+                >
+                  {savingClass ? 'Creating...' : 'Create Class'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
