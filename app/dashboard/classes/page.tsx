@@ -384,9 +384,9 @@ export default function ClassesPage() {
               </button>
             </div>
             <div className="space-y-4">
-              {/* Step 1: Select Teacher */}
+              {/* Teacher Selection */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">1. Select Teacher *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Teacher *</label>
                 <select
                   value={classForm.teacher_id}
                   onChange={(e) => handleTeacherChange(e.target.value)}
@@ -401,202 +401,193 @@ export default function ClassesPage() {
                 </select>
               </div>
 
-              {/* Step 2: Select Subject (only shown after teacher is selected) */}
-              {classForm.teacher_id && (
+              {/* Subject Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Subject *</label>
+                <select
+                  value={classForm.subject}
+                  onChange={(e) => setClassForm({ ...classForm, subject: e.target.value })}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  disabled={!classForm.teacher_id || availableSubjects.length === 0}
+                >
+                  <option value="">
+                    {!classForm.teacher_id
+                      ? 'Select a teacher first'
+                      : availableSubjects.length === 0
+                      ? 'No subjects available'
+                      : 'Select a subject'}
+                  </option>
+                  {availableSubjects.map((subject, index) => (
+                    <option key={index} value={subject}>
+                      {subject}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Centre Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Centre *</label>
+                <select
+                  value={classForm.centre_id}
+                  onChange={(e) => setClassForm({ ...classForm, centre_id: e.target.value })}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+                >
+                  <option value="">Select a centre</option>
+                  {centres.map((centre) => (
+                    <option key={centre.id} value={centre.id}>
+                      {centre.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Day and Time */}
+              <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">2. Select Subject *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Day *</label>
                   <select
-                    value={classForm.subject}
-                    onChange={(e) => setClassForm({ ...classForm, subject: e.target.value })}
+                    value={classForm.day_of_week}
+                    onChange={(e) => setClassForm({ ...classForm, day_of_week: e.target.value })}
                     className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
-                    disabled={availableSubjects.length === 0}
                   >
-                    <option value="">Select a subject</option>
-                    {availableSubjects.map((subject, index) => (
-                      <option key={index} value={subject}>
-                        {subject}
+                    <option value="">Select day</option>
+                    {daysOfWeek.map((day, index) => (
+                      <option key={index} value={index}>
+                        {day}
                       </option>
                     ))}
                   </select>
-                  {availableSubjects.length === 0 && (
-                    <p className="text-xs text-gray-500 mt-1">This teacher has no subjects assigned</p>
-                  )}
                 </div>
-              )}
 
-              {/* Step 3: Select Centre */}
-              {classForm.subject && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">3. Select Centre *</label>
-                  <select
-                    value={classForm.centre_id}
-                    onChange={(e) => setClassForm({ ...classForm, centre_id: e.target.value })}
-                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
-                  >
-                    <option value="">Select a centre</option>
-                    {centres.map((centre) => (
-                      <option key={centre.id} value={centre.id}>
-                        {centre.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {/* Step 4: Day and Time */}
-              {classForm.centre_id && (
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">4. Day *</label>
-                    <select
-                      value={classForm.day_of_week}
-                      onChange={(e) => setClassForm({ ...classForm, day_of_week: e.target.value })}
-                      className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
-                    >
-                      <option value="">Select day</option>
-                      {daysOfWeek.map((day, index) => (
-                        <option key={index} value={index}>
-                          {day}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Start Time *</label>
-                    <input
-                      type="time"
-                      value={classForm.start_time}
-                      onChange={(e) => setClassForm({ ...classForm, start_time: e.target.value })}
-                      className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">End Time *</label>
-                    <input
-                      type="time"
-                      value={classForm.end_time}
-                      onChange={(e) => setClassForm({ ...classForm, end_time: e.target.value })}
-                      className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Step 5: Class Name */}
-              {classForm.day_of_week && classForm.start_time && classForm.end_time && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">5. Class Name *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Start Time *</label>
                   <input
-                    type="text"
-                    value={classForm.name}
-                    onChange={(e) => setClassForm({ ...classForm, name: e.target.value })}
+                    type="time"
+                    value={classForm.start_time}
+                    onChange={(e) => setClassForm({ ...classForm, start_time: e.target.value })}
                     className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
-                    placeholder="e.g., Math 101 - Beginner"
                   />
                 </div>
-              )}
 
-              {/* Step 6: Number of Lessons and Room */}
-              {classForm.name && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">6. Number of Lessons</label>
-                    <input
-                      type="number"
-                      value={classForm.total_lessons}
-                      onChange={(e) => setClassForm({ ...classForm, total_lessons: e.target.value })}
-                      className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
-                      placeholder="e.g., 12"
-                      min="1"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Room (Optional)</label>
-                    <input
-                      type="text"
-                      value={classForm.room}
-                      onChange={(e) => setClassForm({ ...classForm, room: e.target.value })}
-                      className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
-                      placeholder="e.g., Room 101"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">End Time *</label>
+                  <input
+                    type="time"
+                    value={classForm.end_time}
+                    onChange={(e) => setClassForm({ ...classForm, end_time: e.target.value })}
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+                  />
                 </div>
-              )}
+              </div>
 
-              {/* Step 7: Assign Students */}
-              {classForm.name && (
-                <div className="pt-2 border-t border-gray-200">
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-sm font-medium text-gray-700">
-                      7. Assign Students * ({selectedStudents.length} assigned)
-                    </label>
-                    <button
-                      onClick={() => setShowStudentPicker(!showStudentPicker)}
-                      className="flex items-center gap-1 px-3 py-1.5 bg-brand-primary text-white rounded-lg hover:bg-brand-primary-dark transition-colors text-sm"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                      </svg>
-                      Add Students
-                    </button>
-                  </div>
+              {/* Class Name */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Class Name *</label>
+                <input
+                  type="text"
+                  value={classForm.name}
+                  onChange={(e) => setClassForm({ ...classForm, name: e.target.value })}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+                  placeholder="e.g., Math 101 - Beginner"
+                />
+              </div>
 
-                  {/* Selected Students Display */}
-                  {selectedStudents.length > 0 && (
-                    <div className="mb-2 flex flex-wrap gap-2">
-                      {selectedStudents.map((studentId) => {
-                        const student = students.find(s => s.id === studentId)
-                        return (
-                          <div
-                            key={studentId}
-                            className="flex items-center gap-1 bg-brand-secondary bg-opacity-10 text-brand-secondary px-3 py-1 rounded-full text-sm"
+              {/* Number of Lessons and Room */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Number of Lessons</label>
+                  <input
+                    type="number"
+                    value={classForm.total_lessons}
+                    onChange={(e) => setClassForm({ ...classForm, total_lessons: e.target.value })}
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+                    placeholder="e.g., 12"
+                    min="1"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Room (Optional)</label>
+                  <input
+                    type="text"
+                    value={classForm.room}
+                    onChange={(e) => setClassForm({ ...classForm, room: e.target.value })}
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+                    placeholder="e.g., Room 101"
+                  />
+                </div>
+              </div>
+
+              {/* Assign Students */}
+              <div className="pt-2 border-t border-gray-200">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Assign Students * ({selectedStudents.length} assigned)
+                  </label>
+                  <button
+                    onClick={() => setShowStudentPicker(!showStudentPicker)}
+                    className="flex items-center gap-1 px-3 py-1.5 bg-brand-primary text-white rounded-lg hover:bg-brand-primary-dark transition-colors text-sm"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Add Students
+                  </button>
+                </div>
+
+                {/* Selected Students Display */}
+                {selectedStudents.length > 0 && (
+                  <div className="mb-2 flex flex-wrap gap-2">
+                    {selectedStudents.map((studentId) => {
+                      const student = students.find(s => s.id === studentId)
+                      return (
+                        <div
+                          key={studentId}
+                          className="flex items-center gap-1 bg-brand-secondary bg-opacity-10 text-brand-secondary px-3 py-1 rounded-full text-sm"
+                        >
+                          <span>{student?.name}</span>
+                          <button
+                            onClick={() => setSelectedStudents(selectedStudents.filter(id => id !== studentId))}
+                            className="hover:text-red-600"
                           >
-                            <span>{student?.name}</span>
-                            <button
-                              onClick={() => setSelectedStudents(selectedStudents.filter(id => id !== studentId))}
-                              className="hover:text-red-600"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                              </svg>
-                            </button>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
 
-                  {/* Student Picker Dropdown */}
-                  {showStudentPicker && (
-                    <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-2 space-y-1 bg-gray-50">
-                      {students.length === 0 ? (
-                        <p className="text-sm text-gray-500 text-center py-4">No students available</p>
-                      ) : (
-                        students
-                          .filter(student => !selectedStudents.includes(student.id))
-                          .map((student) => (
-                            <button
-                              key={student.id}
-                              onClick={() => {
-                                setSelectedStudents([...selectedStudents, student.id])
-                                setShowStudentPicker(false)
-                              }}
-                              className="w-full text-left p-2 hover:bg-white rounded cursor-pointer text-sm text-gray-900"
-                            >
-                              {student.name}
-                            </button>
-                          ))
-                      )}
-                      {students.filter(s => !selectedStudents.includes(s.id)).length === 0 && selectedStudents.length > 0 && (
-                        <p className="text-sm text-gray-500 text-center py-4">All students have been assigned</p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
+                {/* Student Picker Dropdown */}
+                {showStudentPicker && (
+                  <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-2 space-y-1 bg-gray-50">
+                    {students.length === 0 ? (
+                      <p className="text-sm text-gray-500 text-center py-4">No students available</p>
+                    ) : (
+                      students
+                        .filter(student => !selectedStudents.includes(student.id))
+                        .map((student) => (
+                          <button
+                            key={student.id}
+                            onClick={() => {
+                              setSelectedStudents([...selectedStudents, student.id])
+                              setShowStudentPicker(false)
+                            }}
+                            className="w-full text-left p-2 hover:bg-white rounded cursor-pointer text-sm text-gray-900"
+                          >
+                            {student.name}
+                          </button>
+                        ))
+                    )}
+                    {students.filter(s => !selectedStudents.includes(s.id)).length === 0 && selectedStudents.length > 0 && (
+                      <p className="text-sm text-gray-500 text-center py-4">All students have been assigned</p>
+                    )}
+                  </div>
+                )}
+              </div>
 
               <div className="flex gap-2 justify-end pt-4">
                 <button
