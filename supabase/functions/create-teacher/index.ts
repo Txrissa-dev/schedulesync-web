@@ -86,7 +86,7 @@ serve(async (req) => {
     const { data: teacher, error: teacherError } = await supabaseAdmin
       .from('teachers')
       .insert({
-        full_name,
+        name: full_name,  // The database column is 'name', not 'full_name'
         email,
         phone,
         subjects: subjectsArray,
