@@ -54,17 +54,19 @@ export default function ClassesPage() {
   const [savingClass, setSavingClass] = useState(false)
 
   const [classForm, setClassForm] = useState({
-    name: '',
-    subject: '',
     teacher_id: '',
+    subject: '',
     centre_id: '',
     day_of_week: '',
     start_time: '',
     end_time: '',
+    name: '',
     room: '',
     total_lessons: '',
   })
   const [selectedStudents, setSelectedStudents] = useState<string[]>([])
+  const [availableSubjects, setAvailableSubjects] = useState<string[]>([])
+  const [showStudentPicker, setShowStudentPicker] = useState(false)
 
   useEffect(() => {
     const fetchClasses = async () => {
@@ -162,6 +164,30 @@ export default function ClassesPage() {
     fetchClasses()
   }, [])
 
+  const handleTeacherChange = (teacherId: string) => {
+    setClassForm({ ...classForm, teacher_id: teacherId, subject: '' })
+
+    // Find the selected teacher and extract their subjects
+    const selectedTeacher = teachers.find(t => t.id === teacherId)
+    if (selectedTeacher) {
+      // Fetch teacher details to get subjects
+      supabase
+        .from('teachers')
+        .select('subjects')
+        .eq('id', teacherId)
+        .single()
+        .then(({ data }) => {
+          if (data && data.subjects && Array.isArray(data.subjects)) {
+            setAvailableSubjects(data.subjects)
+          } else {
+            setAvailableSubjects([])
+          }
+        })
+    } else {
+      setAvailableSubjects([])
+    }
+  }
+
   const handleAddClass = async () => {
     if (!classForm.name || !classForm.subject || !classForm.teacher_id || !classForm.centre_id ||
         !classForm.day_of_week || !classForm.start_time || !classForm.end_time || !organisationId) {
@@ -170,7 +196,7 @@ export default function ClassesPage() {
     }
 
     if (selectedStudents.length === 0) {
-      alert('Please select at least one student')
+      alert('Please add at least one student')
       return
     }
 
