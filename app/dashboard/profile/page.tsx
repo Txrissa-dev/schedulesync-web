@@ -259,10 +259,18 @@ export default function ProfilePage() {
       console.log('Response data:', response.data)
       console.log('Response error:', response.error)
 
-      // Check for function invocation error
+      // Try to get more error details
       if (response.error) {
         console.error('Function invocation error:', response.error)
-        const errorMsg = response.error.message || 'Unknown error'
+        console.error('Error context:', (response.error as any).context)
+        console.error('Error details:', JSON.stringify(response.error, null, 2))
+      }
+
+      // Check for function invocation error
+      if (response.error) {
+        // Try to extract the actual error message from the response data
+        const errorMsg = response.data?.error || response.error.message || 'Unknown error'
+        console.error('Extracted error message:', errorMsg)
         alert(`Failed to create teacher: ${errorMsg}`)
         return
       }
