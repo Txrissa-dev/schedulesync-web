@@ -31,9 +31,9 @@ npm install
 
 ### Environment Variables
 
-The `.env.local` file is already configured with:
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+Create a `.env.local` file with your Supabase credentials:
+- `NEXT_PUBLIC_SUPABASE_URL` - Your Supabase project URL
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Your Supabase anon key
 
 ### Development
 
