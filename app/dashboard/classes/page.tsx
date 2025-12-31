@@ -571,24 +571,99 @@ export default function ClassesPage() {
 
               {/* Assign Students */}
               <div className="pt-2 border-t border-gray-200">
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Assign Students * ({selectedStudents.length} assigned)
-                  </label>
-                  <button
-                    onClick={() => setShowStudentPicker(!showStudentPicker)}
-                    className="flex items-center gap-1 px-3 py-1.5 bg-brand-primary text-white rounded-lg hover:bg-brand-primary-dark transition-colors text-sm"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                    Add Students
-                  </button>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Assign Students * ({selectedStudents.length} assigned)
+                </label>
+
+                {/* Search/Add Student Input */}
+                <div className="mb-3">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={studentSearchQuery}
+                      onChange={(e) => {
+                        setStudentSearchQuery(e.target.value)
+                        // Filter existing students as user types
+                        if (e.target.value) {
+                          const filtered = students.filter(s =>
+                            s.name.toLowerCase().includes(e.target.value.toLowerCase()) &&
+                            !selectedStudents.includes(s.id)
+                          )
+                          setFilteredStudents(filtered)
+                        } else {
+                          setFilteredStudents([])
+                        }
+                      }}
+                      onKeyPress={async (e) => {
+                        if (e.key === 'Enter' && studentSearchQuery.trim()) {
+                          e.preventDefault()
+                          // Check if student exists
+                          const existingStudent = students.find(
+                            s => s.name.toLowerCase() === studentSearchQuery.trim().toLowerCase()
+                          )
+
+                          if (existingStudent && !selectedStudents.includes(existingStudent.id)) {
+                            // Add existing student
+                            setSelectedStudents([...selectedStudents, existingStudent.id])
+                            setStudentSearchQuery('')
+                            setFilteredStudents([])
+                          } else if (!existingStudent) {
+                            // Create new student
+                            const { data: newStudent, error } = await supabase
+                              .from('students')
+                              .insert({
+                                name: studentSearchQuery.trim(),
+                                organisation_id: organisationId
+                              })
+                              .select()
+                              .single()
+
+                            if (error) {
+                              alert('Failed to create student')
+                              return
+                            }
+
+                            if (newStudent) {
+                              setStudents([...students, newStudent])
+                              setSelectedStudents([...selectedStudents, newStudent.id])
+                              setStudentSearchQuery('')
+                              setFilteredStudents([])
+                            }
+                          }
+                        }
+                      }}
+                      placeholder="Type student name and press Enter..."
+                      className="flex-1 px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+                    />
+                  </div>
+
+                  {/* Dropdown for filtered students */}
+                  {filteredStudents.length > 0 && (
+                    <div className="mt-1 border border-gray-200 rounded-lg bg-white shadow-lg max-h-48 overflow-y-auto">
+                      {filteredStudents.map((student) => (
+                        <button
+                          key={student.id}
+                          onClick={() => {
+                            setSelectedStudents([...selectedStudents, student.id])
+                            setStudentSearchQuery('')
+                            setFilteredStudents([])
+                          }}
+                          className="w-full text-left px-4 py-2 hover:bg-gray-50 text-sm"
+                        >
+                          {student.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  <p className="text-xs text-gray-500 mt-1">
+                    Type a name and press Enter. If the student doesn't exist, a new one will be created.
+                  </p>
                 </div>
 
                 {/* Selected Students Display */}
                 {selectedStudents.length > 0 && (
-                  <div className="mb-2 flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2">
                     {selectedStudents.map((studentId) => {
                       const student = students.find(s => s.id === studentId)
                       return (
@@ -610,33 +685,6 @@ export default function ClassesPage() {
                     })}
                   </div>
                 )}
-
-                {/* Student Picker Dropdown */}
-                {showStudentPicker && (
-                  <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-2 space-y-1 bg-gray-50">
-                    {students.length === 0 ? (
-                      <p className="text-sm text-gray-500 text-center py-4">No students available</p>
-                    ) : (
-                      students
-                        .filter(student => !selectedStudents.includes(student.id))
-                        .map((student) => (
-                          <button
-                            key={student.id}
-                            onClick={() => {
-                              setSelectedStudents([...selectedStudents, student.id])
-                              setShowStudentPicker(false)
-                            }}
-                            className="w-full text-left p-2 hover:bg-white rounded cursor-pointer text-sm text-gray-900"
-                          >
-                            {student.name}
-                          </button>
-                        ))
-                    )}
-                    {students.filter(s => !selectedStudents.includes(s.id)).length === 0 && selectedStudents.length > 0 && (
-                      <p className="text-sm text-gray-500 text-center py-4">All students have been assigned</p>
-                    )}
-                  </div>
-                )}
               </div>
 
               <div className="flex gap-2 justify-end pt-4">
@@ -653,10 +701,12 @@ export default function ClassesPage() {
                       name: '',
                       room: '',
                       total_lessons: '',
+                      start_date: '',
                     })
                     setSelectedStudents([])
                     setAvailableSubjects([])
-                    setShowStudentPicker(false)
+                    setStudentSearchQuery('')
+                    setFilteredStudents([])
                   }}
                   className="px-4 py-2 text-sm font-medium text-gray-600 border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                 >
