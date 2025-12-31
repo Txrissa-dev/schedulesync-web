@@ -172,10 +172,20 @@ export default function ProfilePage() {
           if (profileData.has_admin_access || profileData.is_super_admin) {
             if (profileData.organisation_id) {
               // Fetch teachers
-              const { data: teachersData } = await supabase
+              const { data: teachersData, error: teachersError } = await supabase
                 .from('teachers')
                 .select('id, full_name, email, phone, address, organisation_id')
                 .eq('organisation_id', profileData.organisation_id)
+
+              console.log('Teachers query result:', { teachersData, teachersError })
+
+              // DEBUG: Fetch ALL teachers to see what's in the database
+              const { data: allTeachers } = await supabase
+                .from('teachers')
+                .select('id, full_name, email, organisation_id')
+
+              console.log('ALL teachers in database:', allTeachers)
+              console.log('Your organisation_id:', profileData.organisation_id)
 
               if (teachersData) {
                 setTeachers(teachersData)
