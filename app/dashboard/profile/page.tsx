@@ -19,7 +19,6 @@ interface Teacher {
   full_name: string
   email: string | null
   phone: string | null
-  address: string | null
   organisation_id: string | null
 }
 
@@ -83,7 +82,6 @@ export default function ProfilePage() {
     full_name: '',
     email: '',
     phone: '',
-    address: '',
     subjects: '',
     password: '',
     has_admin_access: false
@@ -174,7 +172,7 @@ export default function ProfilePage() {
               // Fetch teachers
               const { data: teachersData, error: teachersError } = await supabase
                 .from('teachers')
-                .select('id, full_name, email, phone, address, organisation_id')
+                .select('id, full_name, email, phone, organisation_id')
                 .eq('organisation_id', profileData.organisation_id)
 
               console.log('Teachers query result:', { teachersData, teachersError })
@@ -321,8 +319,7 @@ export default function ProfilePage() {
         .update({
           full_name: teacherForm.full_name,
           email: teacherForm.email || null,
-          phone: teacherForm.phone || null,
-          address: teacherForm.address || null
+          phone: teacherForm.phone || null
         })
         .eq('id', selectedTeacher.id)
 
