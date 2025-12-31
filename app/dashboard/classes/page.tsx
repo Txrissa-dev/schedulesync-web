@@ -63,10 +63,13 @@ export default function ClassesPage() {
     name: '',
     room: '',
     total_lessons: '',
+    start_date: '', // New field for first lesson date
   })
   const [selectedStudents, setSelectedStudents] = useState<string[]>([])
   const [availableSubjects, setAvailableSubjects] = useState<string[]>([])
   const [showStudentPicker, setShowStudentPicker] = useState(false)
+  const [studentSearchQuery, setStudentSearchQuery] = useState('')
+  const [filteredStudents, setFilteredStudents] = useState<Student[]>([])
 
   useEffect(() => {
     const fetchClasses = async () => {
@@ -195,6 +198,11 @@ export default function ClassesPage() {
       return
     }
 
+    if (!classForm.start_date) {
+      alert('Please select a start date for the first lesson')
+      return
+    }
+
     if (selectedStudents.length === 0) {
       alert('Please add at least one student')
       return
@@ -226,7 +234,36 @@ export default function ClassesPage() {
         return
       }
 
-      // 2. Assign students to the class
+      // 2. Generate lesson schedule based on start_date and total_lessons
+      if (newClass && classForm.total_lessons && classForm.start_date) {
+        const totalLessons = parseInt(classForm.total_lessons)
+        const startDate = new Date(classForm.start_date)
+        const lessonRecords = []
+
+        for (let i = 0; i < totalLessons; i++) {
+          const lessonDate = new Date(startDate)
+          lessonDate.setDate(startDate.getDate() + (i * 7)) // Add 7 days for each subsequent lesson
+
+          lessonRecords.push({
+            class_id: newClass.id,
+            lesson_number: i + 1,
+            scheduled_date: lessonDate.toISOString().split('T')[0],
+            status: 'scheduled',
+            notes: null
+          })
+        }
+
+        const { error: lessonsError } = await supabase
+          .from('lesson_statuses')
+          .insert(lessonRecords)
+
+        if (lessonsError) {
+          console.error('Error creating lesson schedule:', lessonsError)
+          alert('Class created but failed to generate lesson schedule')
+        }
+      }
+
+      // 3. Assign students to the class
       if (newClass && selectedStudents.length > 0) {
         const studentAssignments = selectedStudents.map(studentId => ({
           class_id: newClass.id,
@@ -246,7 +283,7 @@ export default function ClassesPage() {
       // Refresh the classes list
       window.location.reload()
 
-      alert('Class created successfully!')
+      alert('Class created successfully with lesson schedule!')
       setShowAddClass(false)
       setClassForm({
         name: '',
@@ -258,6 +295,7 @@ export default function ClassesPage() {
         end_time: '',
         room: '',
         total_lessons: '',
+        start_date: '',
       })
       setSelectedStudents([])
     } catch (error: any) {
@@ -495,10 +533,10 @@ export default function ClassesPage() {
                 />
               </div>
 
-              {/* Number of Lessons and Room */}
-              <div className="grid grid-cols-2 gap-4">
+              {/* Number of Lessons, Start Date, and Room */}
+              <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Number of Lessons</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Number of Lessons *</label>
                   <input
                     type="number"
                     value={classForm.total_lessons}
@@ -506,6 +544,16 @@ export default function ClassesPage() {
                     className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
                     placeholder="e.g., 12"
                     min="1"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">First Lesson Date *</label>
+                  <input
+                    type="date"
+                    value={classForm.start_date}
+                    onChange={(e) => setClassForm({ ...classForm, start_date: e.target.value })}
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
                   />
                 </div>
 
