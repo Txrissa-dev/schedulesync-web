@@ -613,11 +613,10 @@ export default function ProfilePage() {
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <h4 className="font-semibold text-gray-900">{teacher.full_name}</h4>
+                      <h4 className="font-semibold text-gray-900">{teacher.full_name || teacher.email}</h4>
                       <div className="mt-1 text-sm text-gray-600 space-y-1">
                         {teacher.email && <p>Email: {teacher.email}</p>}
                         {teacher.phone && <p>Phone: {teacher.phone}</p>}
-                        {teacher.address && <p>Address: {teacher.address}</p>}
                       </div>
                     </div>
                     <button
@@ -627,7 +626,9 @@ export default function ProfilePage() {
                           full_name: teacher.full_name,
                           email: teacher.email || '',
                           phone: teacher.phone || '',
-                          address: teacher.address || ''
+                          subjects: '',
+                          password: '',
+                          has_admin_access: false
                         })
                         loadTeacherCentres(teacher.id)
                         setShowEditTeacher(true)
@@ -819,16 +820,6 @@ export default function ProfilePage() {
                       onChange={(e) => setTeacherForm({ ...teacherForm, phone: e.target.value })}
                       className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
                       placeholder="Enter phone"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
-                    <input
-                      type="text"
-                      value={teacherForm.address}
-                      onChange={(e) => setTeacherForm({ ...teacherForm, address: e.target.value })}
-                      className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
-                      placeholder="Enter address"
                     />
                   </div>
 
