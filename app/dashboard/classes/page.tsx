@@ -311,52 +311,54 @@ export default function ClassesPage() {
               <h3 className="text-lg font-semibold text-gray-900 mb-4">{day}</h3>
               <div className="space-y-3">
                 {dayClasses.map((cls) => (
-                  <div
+                  <Link
                     key={cls.id}
-                    className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-brand-primary transition-colors"
+                    href={`/dashboard/classes/${cls.id}`}
+                    className="block"
                   >
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-gray-900">{cls.name}</h4>
-                      <div className="flex flex-wrap gap-3 mt-1 text-sm text-gray-600">
-                        <span className="flex items-center">
-                          <span className="font-medium text-brand-primary mr-1">Subject:</span>
-                          {cls.subject}
-                        </span>
-                        <span className="flex items-center">
-                          <span className="font-medium text-brand-secondary mr-1">Time:</span>
-                          {cls.start_time} - {cls.end_time}
-                        </span>
-                        {cls.room && (
+                    <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-brand-primary hover:shadow-md transition-all cursor-pointer">
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-gray-900">{cls.name}</h4>
+                        <div className="flex flex-wrap gap-3 mt-1 text-sm text-gray-600">
                           <span className="flex items-center">
-                            <span className="font-medium text-brand-warning mr-1">Room:</span>
-                            {cls.room}
+                            <span className="font-medium text-brand-primary mr-1">Subject:</span>
+                            {cls.subject}
                           </span>
-                        )}
-                        {cls.centre && (
                           <span className="flex items-center">
-                            <span className="font-medium text-gray-700 mr-1">Centre:</span>
-                            {cls.centre.name}
+                            <span className="font-medium text-brand-secondary mr-1">Time:</span>
+                            {cls.start_time} - {cls.end_time}
                           </span>
-                        )}
-                      </div>
-                      <div className="flex flex-wrap gap-3 mt-2 text-sm">
-                        {cls.teacher && (
+                          {cls.room && (
+                            <span className="flex items-center">
+                              <span className="font-medium text-brand-warning mr-1">Room:</span>
+                              {cls.room}
+                            </span>
+                          )}
+                          {cls.centre && (
+                            <span className="flex items-center">
+                              <span className="font-medium text-gray-700 mr-1">Centre:</span>
+                              {cls.centre.name}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-3 mt-2 text-sm">
+                          {cls.teacher && (
+                            <span className="text-gray-600">
+                              Teacher: <span className="font-medium">{cls.teacher.name}</span>
+                            </span>
+                          )}
                           <span className="text-gray-600">
-                            Teacher: <span className="font-medium">{cls.teacher.name}</span>
+                            Students: <span className="font-medium text-brand-success">{cls.student_count}</span>
                           </span>
-                        )}
-                        <span className="text-gray-600">
-                          Students: <span className="font-medium text-brand-success">{cls.student_count}</span>
-                        </span>
+                          {cls.total_lessons && (
+                            <span className="text-gray-600">
+                              Lessons: <span className="font-medium text-brand-primary">{cls.total_lessons}</span>
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    <Link
-                      href={`/dashboard/attendance/${cls.id}`}
-                      className="ml-4 px-4 py-2 bg-brand-success text-white rounded-lg hover:bg-green-700 text-sm font-medium transition-colors"
-                    >
-                      Attendance
-                    </Link>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </div>
