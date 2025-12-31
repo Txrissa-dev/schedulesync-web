@@ -253,13 +253,20 @@ export default function ClassesPage() {
           })
         }
 
+        console.log('Attempting to insert lessons:', lessonRecords)
+
         const { error: lessonsError } = await supabase
           .from('lesson_statuses')
           .insert(lessonRecords)
 
         if (lessonsError) {
-          console.error('Error creating lesson schedule:', lessonsError)
-          alert('Class created but failed to generate lesson schedule')
+          console.error('Detailed error creating lesson schedule:', lessonsError)
+          console.error('Error message:', lessonsError.message)
+          console.error('Error details:', lessonsError.details)
+          console.error('Error hint:', lessonsError.hint)
+          alert(`Class created but failed to generate lesson schedule: ${lessonsError.message}`)
+        } else {
+          console.log('Lessons created successfully!')
         }
       }
 
