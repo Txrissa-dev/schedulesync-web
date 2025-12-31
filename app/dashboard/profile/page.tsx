@@ -548,6 +548,19 @@ export default function ProfilePage() {
 
   return (
     <div className="px-4 py-6 sm:px-0 space-y-6">
+      {/* Debug Info - Remove after fixing */}
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm">
+        <h3 className="font-semibold text-yellow-900 mb-2">Debug Info:</h3>
+        <div className="space-y-1 text-yellow-800">
+          <p>Has Admin Access: {profile.has_admin_access ? '✓ YES' : '✗ NO'}</p>
+          <p>Is Super Admin: {profile.is_super_admin ? '✓ YES' : '✗ NO'}</p>
+          <p>Organisation ID: {profile.organisation_id || '✗ NOT SET'}</p>
+          <p>Teacher ID: {profile.teacher_id || 'Not a teacher'}</p>
+          <p>Teachers Found: {teachers.length}</p>
+          <p>Centres Found: {centres.length}</p>
+        </div>
+      </div>
+
       {/* Profile Header */}
       <div className="bg-white shadow-lg rounded-xl border border-orange-100 p-6">
         <h1 className="text-3xl font-bold text-brand-primary">{profile.full_name || profile.username || 'User'}</h1>
