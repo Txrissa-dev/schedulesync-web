@@ -1,5 +1,8 @@
+-- Drop existing lesson_statuses table if it exists (to fix any partial creation)
+DROP TABLE IF EXISTS lesson_statuses CASCADE;
+
 -- Create lesson_statuses table for tracking lesson schedules
-CREATE TABLE IF NOT EXISTS lesson_statuses (
+CREATE TABLE lesson_statuses (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
   lesson_number INTEGER NOT NULL,
