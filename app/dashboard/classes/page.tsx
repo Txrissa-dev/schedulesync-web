@@ -20,6 +20,7 @@ interface Class {
   } | null
   student_count: number
   total_lessons: number | null
+  completed_lessons: number
 }
 
 interface Teacher {
@@ -39,6 +40,7 @@ interface Student {
 }
 
 const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+const daysOfWeekShort = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 export default function ClassesPage() {
   const [classes, setClasses] = useState<Class[]>([])
@@ -63,11 +65,10 @@ export default function ClassesPage() {
     name: '',
     room: '',
     total_lessons: '',
-    start_date: '', // New field for first lesson date
+    start_date: '',
   })
   const [selectedStudents, setSelectedStudents] = useState<string[]>([])
   const [availableSubjects, setAvailableSubjects] = useState<string[]>([])
-  const [showStudentPicker, setShowStudentPicker] = useState(false)
   const [studentSearchQuery, setStudentSearchQuery] = useState('')
   const [filteredStudents, setFilteredStudents] = useState<Student[]>([])
 
@@ -112,28 +113,40 @@ export default function ClassesPage() {
           query = query.eq('teacher_id', profile.teacher_id)
         }
 
-        const { data: classesData } = await query.order('day_of_week').order('start_time')
+        const { data: classesData } = await query.order('subject').order('name')
 
         if (classesData) {
-          const formattedClasses = classesData.map((c: any) => ({
-            id: c.id,
-            name: c.name,
-            subject: c.subject,
-            day_of_week: c.day_of_week,
-            start_time: c.start_time,
-            end_time: c.end_time,
-            room: c.room,
-            total_lessons: c.total_lessons,
-            teacher: c.teachers,
-            centre: c.centres,
-            student_count: c.class_students?.length || 0
-          }))
-          setClasses(formattedClasses)
+          // Fetch lesson progress for each class
+          const classesWithProgress = await Promise.all(
+            classesData.map(async (c: any) => {
+              const { data: lessons } = await supabase
+                .from('lesson_statuses')
+                .select('status')
+                .eq('class_id', c.id)
+
+              const completedLessons = lessons?.filter((l: any) => l.status === 'completed').length || 0
+
+              return {
+                id: c.id,
+                name: c.name,
+                subject: c.subject,
+                day_of_week: c.day_of_week,
+                start_time: c.start_time,
+                end_time: c.end_time,
+                room: c.room,
+                total_lessons: c.total_lessons,
+                teacher: c.teachers,
+                centre: c.centres,
+                student_count: c.class_students?.length || 0,
+                completed_lessons: completedLessons
+              }
+            })
+          )
+          setClasses(classesWithProgress)
         }
 
         // If admin, fetch teachers, centres, and students for the add form
         if (profile.has_admin_access || profile.is_super_admin) {
-          // Fetch teachers
           const { data: teachersData } = await supabase
             .from('teachers')
             .select('id, name, email')
@@ -141,7 +154,6 @@ export default function ClassesPage() {
 
           if (teachersData) setTeachers(teachersData)
 
-          // Fetch centres
           const { data: centresData } = await supabase
             .from('centres')
             .select('id, name')
@@ -149,7 +161,6 @@ export default function ClassesPage() {
 
           if (centresData) setCentres(centresData)
 
-          // Fetch students
           const { data: studentsData } = await supabase
             .from('students')
             .select('id, name')
@@ -170,10 +181,8 @@ export default function ClassesPage() {
   const handleTeacherChange = (teacherId: string) => {
     setClassForm({ ...classForm, teacher_id: teacherId, subject: '' })
 
-    // Find the selected teacher and extract their subjects
     const selectedTeacher = teachers.find(t => t.id === teacherId)
     if (selectedTeacher) {
-      // Fetch teacher details to get subjects
       supabase
         .from('teachers')
         .select('subjects')
@@ -210,7 +219,6 @@ export default function ClassesPage() {
 
     setSavingClass(true)
     try {
-      // 1. Create the class
       const { data: newClass, error: classError } = await supabase
         .from('classes')
         .insert({
@@ -234,7 +242,7 @@ export default function ClassesPage() {
         return
       }
 
-      // 2. Generate lesson schedule based on start_date and total_lessons
+      // Generate lesson schedule
       if (newClass && classForm.total_lessons && classForm.start_date) {
         const totalLessons = parseInt(classForm.total_lessons)
         const startDate = new Date(classForm.start_date)
@@ -242,7 +250,7 @@ export default function ClassesPage() {
 
         for (let i = 0; i < totalLessons; i++) {
           const lessonDate = new Date(startDate)
-          lessonDate.setDate(startDate.getDate() + (i * 7)) // Add 7 days for each subsequent lesson
+          lessonDate.setDate(startDate.getDate() + (i * 7))
 
           lessonRecords.push({
             class_id: newClass.id,
@@ -253,24 +261,17 @@ export default function ClassesPage() {
           })
         }
 
-        console.log('Attempting to insert lessons:', lessonRecords)
-
         const { error: lessonsError } = await supabase
           .from('lesson_statuses')
           .insert(lessonRecords)
 
         if (lessonsError) {
-          console.error('Detailed error creating lesson schedule:', lessonsError)
-          console.error('Error message:', lessonsError.message)
-          console.error('Error details:', lessonsError.details)
-          console.error('Error hint:', lessonsError.hint)
+          console.error('Error creating lesson schedule:', lessonsError)
           alert(`Class created but failed to generate lesson schedule: ${lessonsError.message}`)
-        } else {
-          console.log('Lessons created successfully!')
         }
       }
 
-      // 3. Assign students to the class
+      // Assign students to the class
       if (newClass && selectedStudents.length > 0) {
         const studentAssignments = selectedStudents.map(studentId => ({
           class_id: newClass.id,
@@ -287,10 +288,8 @@ export default function ClassesPage() {
         }
       }
 
-      // Refresh the classes list
       window.location.reload()
-
-      alert('Class created successfully with lesson schedule!')
+      alert('Class created successfully!')
       setShowAddClass(false)
       setClassForm({
         name: '',
@@ -317,101 +316,120 @@ export default function ClassesPage() {
     return <div className="text-center py-12">Loading classes...</div>
   }
 
-  // Group classes by day
-  const classesByDay = classes.reduce((acc, cls) => {
-    const day = daysOfWeek[cls.day_of_week]
-    if (!acc[day]) acc[day] = []
-    acc[day].push(cls)
+  // Group classes by subject (like iOS app)
+  const classesBySubject = classes.reduce((acc, cls) => {
+    const subject = cls.subject.toUpperCase()
+    if (!acc[subject]) acc[subject] = []
+    acc[subject].push(cls)
     return acc
   }, {} as Record<string, Class[]>)
 
   return (
     <div className="px-4 py-6 sm:px-0">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-brand-primary">All Classes</h2>
-          <p className="text-sm text-gray-600 mt-1">View and manage your classes</p>
+      {/* Header */}
+      <div className="mb-6">
+        <p className="text-sm text-gray-600">{classes.length} Active Classes</p>
+        <div className="flex items-center justify-between">
+          <h1 className="text-4xl font-bold text-gray-900">Classes</h1>
+          {isAdmin && (
+            <button
+              onClick={() => setShowAddClass(true)}
+              className="flex items-center justify-center w-12 h-12 bg-brand-secondary text-white rounded-full hover:bg-blue-600 transition-colors shadow-lg"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+            </button>
+          )}
         </div>
-        {isAdmin && (
-          <button
-            onClick={() => setShowAddClass(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-primary-dark transition-colors text-sm font-medium"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Add Class
-          </button>
-        )}
       </div>
 
       {classes.length === 0 ? (
-        <div className="bg-white rounded-xl border border-orange-100 p-12 text-center">
+        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
           <p className="text-gray-500">No classes found.</p>
         </div>
       ) : (
         <div className="space-y-6">
-          {Object.entries(classesByDay).map(([day, dayClasses]) => (
-            <div key={day} className="bg-white rounded-xl border border-orange-100 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">{day}</h3>
+          {Object.entries(classesBySubject).map(([subject, subjectClasses]) => (
+            <div key={subject}>
+              <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3 px-1">
+                {subject}
+              </h3>
               <div className="space-y-3">
-                {dayClasses.map((cls) => (
-                  <Link
-                    key={cls.id}
-                    href={`/dashboard/classes/${cls.id}`}
-                    className="block"
-                  >
-                    <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-brand-primary hover:shadow-md transition-all cursor-pointer">
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-gray-900">{cls.name}</h4>
-                        <div className="flex flex-wrap gap-3 mt-1 text-sm text-gray-600">
-                          <span className="flex items-center">
-                            <span className="font-medium text-brand-primary mr-1">Subject:</span>
-                            {cls.subject}
-                          </span>
-                          <span className="flex items-center">
-                            <span className="font-medium text-brand-secondary mr-1">Time:</span>
-                            {cls.start_time} - {cls.end_time}
-                          </span>
-                          {cls.room && (
-                            <span className="flex items-center">
-                              <span className="font-medium text-brand-warning mr-1">Room:</span>
-                              {cls.room}
-                            </span>
-                          )}
-                          {cls.centre && (
-                            <span className="flex items-center">
-                              <span className="font-medium text-gray-700 mr-1">Centre:</span>
-                              {cls.centre.name}
-                            </span>
-                          )}
+                {subjectClasses.map((cls) => {
+                  const progress = cls.total_lessons
+                    ? (cls.completed_lessons / cls.total_lessons) * 100
+                    : 0
+
+                  return (
+                    <Link
+                      key={cls.id}
+                      href={`/dashboard/classes/${cls.id}`}
+                      className="block"
+                    >
+                      <div className="bg-white rounded-xl p-5 border border-gray-200 hover:border-brand-primary hover:shadow-md transition-all">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="text-lg font-semibold text-gray-900">{cls.name}</h4>
+                          <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
                         </div>
-                        <div className="flex flex-wrap gap-3 mt-2 text-sm">
-                          {cls.teacher && (
-                            <span className="text-gray-600">
-                              Teacher: <span className="font-medium">{cls.teacher.name}</span>
-                            </span>
-                          )}
-                          <span className="text-gray-600">
-                            Students: <span className="font-medium text-brand-success">{cls.student_count}</span>
+
+                        <div className="flex items-center gap-3 text-sm text-gray-600 mb-3">
+                          <div className="flex items-center gap-1.5">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <span>{daysOfWeekShort[cls.day_of_week]}, {cls.start_time} - {cls.end_time}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                          <span>{cls.centre?.name || 'No centre'}</span>
+                        </div>
+
+                        {/* Lesson Progress */}
+                        {cls.total_lessons && (
+                          <div className="mb-4">
+                            <div className="flex items-center justify-between text-sm mb-1.5">
+                              <span className="text-gray-600">Lesson Progress</span>
+                              <span className="font-medium text-brand-secondary">
+                                {cls.completed_lessons}/{cls.total_lessons}
+                              </span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-2">
+                              <div
+                                className="bg-brand-secondary h-2 rounded-full transition-all"
+                                style={{ width: `${progress}%` }}
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Student Count */}
+                        <div className="flex items-center gap-2 text-sm bg-gray-100 rounded-lg px-3 py-2 w-fit">
+                          <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                          </svg>
+                          <span className="font-medium text-gray-700">
+                            {cls.student_count}/{cls.student_count} enrolled
                           </span>
-                          {cls.total_lessons && (
-                            <span className="text-gray-600">
-                              Lessons: <span className="font-medium text-brand-primary">{cls.total_lessons}</span>
-                            </span>
-                          )}
                         </div>
                       </div>
-                    </div>
-                  </Link>
-                ))}
+                    </Link>
+                  )
+                })}
               </div>
             </div>
           ))}
         </div>
       )}
 
-      {/* Add Class Modal */}
+      {/* Add Class Modal - keeping existing modal code */}
       {showAddClass && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -536,7 +554,7 @@ export default function ClassesPage() {
                   value={classForm.name}
                   onChange={(e) => setClassForm({ ...classForm, name: e.target.value })}
                   className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
-                  placeholder="e.g., Math 101 - Beginner"
+                  placeholder="e.g., K1"
                 />
               </div>
 
@@ -549,7 +567,7 @@ export default function ClassesPage() {
                     value={classForm.total_lessons}
                     onChange={(e) => setClassForm({ ...classForm, total_lessons: e.target.value })}
                     className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
-                    placeholder="e.g., 12"
+                    placeholder="e.g., 8"
                     min="1"
                   />
                 </div>
@@ -582,7 +600,6 @@ export default function ClassesPage() {
                   Assign Students * ({selectedStudents.length} assigned)
                 </label>
 
-                {/* Search/Add Student Input */}
                 <div className="mb-3">
                   <div className="flex gap-2">
                     <input
@@ -590,7 +607,6 @@ export default function ClassesPage() {
                       value={studentSearchQuery}
                       onChange={(e) => {
                         setStudentSearchQuery(e.target.value)
-                        // Filter existing students as user types
                         if (e.target.value) {
                           const filtered = students.filter(s =>
                             s.name.toLowerCase().includes(e.target.value.toLowerCase()) &&
@@ -604,18 +620,15 @@ export default function ClassesPage() {
                       onKeyPress={async (e) => {
                         if (e.key === 'Enter' && studentSearchQuery.trim()) {
                           e.preventDefault()
-                          // Check if student exists
                           const existingStudent = students.find(
                             s => s.name.toLowerCase() === studentSearchQuery.trim().toLowerCase()
                           )
 
                           if (existingStudent && !selectedStudents.includes(existingStudent.id)) {
-                            // Add existing student
                             setSelectedStudents([...selectedStudents, existingStudent.id])
                             setStudentSearchQuery('')
                             setFilteredStudents([])
                           } else if (!existingStudent) {
-                            // Create new student
                             const { data: newStudent, error } = await supabase
                               .from('students')
                               .insert({
@@ -644,7 +657,6 @@ export default function ClassesPage() {
                     />
                   </div>
 
-                  {/* Dropdown for filtered students */}
                   {filteredStudents.length > 0 && (
                     <div className="mt-1 border border-gray-200 rounded-lg bg-white shadow-lg max-h-48 overflow-y-auto">
                       {filteredStudents.map((student) => (
@@ -668,7 +680,6 @@ export default function ClassesPage() {
                   </p>
                 </div>
 
-                {/* Selected Students Display */}
                 {selectedStudents.length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {selectedStudents.map((studentId) => {
