@@ -15,9 +15,12 @@ interface ClassSchedule {
   centre_name: string
   teacher_name: string
   student_count: number
+  completed_lessons: number
+  total_lessons: number | null
 }
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const DAYS_FULL = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
 export default function SchedulesPage() {
@@ -55,6 +58,7 @@ export default function SchedulesPage() {
             start_time,
             end_time,
             room,
+            total_lessons,
             centres:centre_id (name),
             teachers:teacher_id (full_name),
             class_students (student_id)
@@ -69,19 +73,33 @@ export default function SchedulesPage() {
         const { data: classesData } = await query.order('start_time')
 
         if (classesData) {
-          const formatted = classesData.map((c: any) => ({
-            id: c.id,
-            name: c.name,
-            subject: c.subject,
-            day_of_week: c.day_of_week,
-            start_time: c.start_time,
-            end_time: c.end_time,
-            room: c.room,
-            centre_name: c.centres?.name || 'Unknown',
-            teacher_name: c.teachers?.full_name || 'Unknown',
-            student_count: c.class_students?.length || 0
-          }))
-          setClasses(formatted)
+          // Fetch lesson progress for each class
+          const classesWithProgress = await Promise.all(
+            classesData.map(async (c: any) => {
+              const { data: lessons } = await supabase
+                .from('lesson_statuses')
+                .select('status')
+                .eq('class_id', c.id)
+
+              const completedLessons = lessons?.filter((l: any) => l.status === 'completed').length || 0
+
+              return {
+                id: c.id,
+                name: c.name,
+                subject: c.subject,
+                day_of_week: c.day_of_week,
+                start_time: c.start_time,
+                end_time: c.end_time,
+                room: c.room,
+                centre_name: c.centres?.name || 'Unknown',
+                teacher_name: c.teachers?.full_name || 'Unknown',
+                student_count: c.class_students?.length || 0,
+                completed_lessons: completedLessons,
+                total_lessons: c.total_lessons
+              }
+            })
+          )
+          setClasses(classesWithProgress)
         }
       } catch (error) {
         console.error('Error fetching schedules:', error)
@@ -150,19 +168,17 @@ export default function SchedulesPage() {
     <div className="px-4 py-6 sm:px-0">
       {/* Header */}
       <div className="mb-6">
-        <div className="flex items-baseline gap-2">
-          <h1 className="text-2xl font-bold text-brand-primary">Monthly View</h1>
-          <span className="text-xl text-gray-700">
-            {MONTH_NAMES[currentDate.getMonth()]} {currentDate.getFullYear()}
-          </span>
-        </div>
+        <p className="text-sm text-gray-600">Monthly View</p>
+        <h1 className="text-4xl font-bold text-gray-900">
+          {MONTH_NAMES[currentDate.getMonth()]} {currentDate.getFullYear()}
+        </h1>
         {isAdmin && (
-          <p className="text-sm text-gray-600 mt-1">Admin View - All Teachers</p>
+          <p className="text-sm text-brand-primary mt-1">Admin View - All Teachers</p>
         )}
       </div>
 
       {/* Calendar */}
-      <div className="bg-white shadow-lg rounded-xl border border-orange-100 p-6 mb-6">
+      <div className="bg-white shadow-lg rounded-2xl p-6 mb-6">
         {/* Month Navigation */}
         <div className="flex items-center justify-between mb-6">
           <button
@@ -187,10 +203,10 @@ export default function SchedulesPage() {
         </div>
 
         {/* Calendar Grid */}
-        <div className="grid grid-cols-7 gap-2">
+        <div className="grid grid-cols-7 gap-1">
           {/* Day headers */}
           {DAYS.map(day => (
-            <div key={day} className="text-center font-semibold text-gray-600 text-sm py-2">
+            <div key={day} className="text-center font-medium text-gray-600 text-sm py-3">
               {day}
             </div>
           ))}
@@ -216,21 +232,24 @@ export default function SchedulesPage() {
                 key={index}
                 onClick={() => setSelectedDate(date)}
                 className={`
-                  aspect-square p-2 rounded-lg border-2 transition-all
+                  aspect-square p-2 rounded-xl transition-all relative
                   ${isSelected
-                    ? 'border-brand-primary bg-orange-50'
+                    ? 'bg-brand-secondary text-white'
                     : isToday
-                    ? 'border-brand-secondary bg-blue-50'
-                    : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    ? 'bg-blue-50 text-brand-secondary border-2 border-brand-secondary'
+                    : 'hover:bg-gray-100'
                   }
                 `}
               >
                 <div className="flex flex-col items-center justify-center h-full">
-                  <span className={`text-sm ${isSelected ? 'font-bold text-brand-primary' : 'text-gray-700'}`}>
+                  <span className={`text-base font-medium ${isSelected ? 'text-white' : 'text-gray-900'}`}>
                     {date.getDate()}
                   </span>
                   {hasClasses && (
-                    <div className={`w-1.5 h-1.5 rounded-full mt-1 ${isSelected ? 'bg-brand-primary' : 'bg-brand-secondary'}`} />
+                    <div className="flex gap-0.5 mt-1">
+                      <div className={`w-1 h-1 rounded-full ${isSelected ? 'bg-white' : 'bg-green-500'}`} />
+                      <div className={`w-1 h-1 rounded-full ${isSelected ? 'bg-white' : 'bg-green-500'}`} />
+                    </div>
                   )}
                 </div>
               </button>
@@ -241,59 +260,61 @@ export default function SchedulesPage() {
 
       {/* Classes for selected date */}
       {selectedDate && (
-        <div className="bg-white shadow-lg rounded-xl border border-orange-100 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Classes on {MONTH_NAMES[selectedDate.getMonth()]} {selectedDate.getDate()}, {selectedDate.getFullYear()}
+        <div className="bg-white shadow-lg rounded-2xl p-6">
+          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
+            {DAYS_FULL[selectedDate.getDay()].toUpperCase()}, {MONTH_NAMES[selectedDate.getMonth()].toUpperCase()} {selectedDate.getDate()}
           </h3>
 
           {selectedDateClasses.length === 0 ? (
             <p className="text-center text-gray-500 py-8">No classes scheduled for this date</p>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {selectedDateClasses.map((cls) => (
-                <div
+                <Link
                   key={cls.id}
-                  className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-brand-primary transition-colors"
+                  href={`/dashboard/classes/${cls.id}`}
+                  className="block"
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-gray-900">{cls.name}</h4>
-                      <div className="flex flex-wrap gap-3 mt-1 text-sm text-gray-600">
-                        <span className="flex items-center">
-                          <span className="font-medium text-brand-primary mr-1">Subject:</span>
-                          {cls.subject}
-                        </span>
-                        <span className="flex items-center">
-                          <span className="font-medium text-brand-secondary mr-1">Time:</span>
-                          {cls.start_time} - {cls.end_time}
-                        </span>
-                        {cls.room && (
-                          <span className="flex items-center">
-                            <span className="font-medium text-brand-warning mr-1">Room:</span>
-                            {cls.room}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex flex-wrap gap-3 mt-2 text-sm">
-                        <span className="text-gray-600">
-                          Centre: <span className="font-medium">{cls.centre_name}</span>
-                        </span>
-                        <span className="text-gray-600">
-                          Teacher: <span className="font-medium">{cls.teacher_name}</span>
-                        </span>
-                        <span className="text-gray-600">
-                          Students: <span className="font-medium text-brand-success">{cls.student_count}</span>
-                        </span>
+                  <div className="flex gap-4 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                    {/* Time */}
+                    <div className="flex-shrink-0 w-16 text-center">
+                      <div className="text-lg font-bold text-gray-900">{cls.start_time.slice(0, 5)}</div>
+                      <div className="text-xs text-gray-500">{cls.end_time.slice(0, 5)}</div>
+                    </div>
+
+                    {/* Class Info */}
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold text-gray-900 mb-1">{cls.name}</h4>
+                      <p className="text-sm text-gray-600 mb-2">{cls.subject}</p>
+                      <p className="text-sm text-brand-secondary mb-2">{cls.teacher_name}</p>
+
+                      <div className="flex items-center gap-4 text-xs text-gray-500">
+                        <div className="flex items-center gap-1">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                          <span>{cls.centre_name}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                          </svg>
+                          <span>{cls.student_count}</span>
+                        </div>
                       </div>
                     </div>
-                    <Link
-                      href={`/dashboard/attendance/${cls.id}`}
-                      className="ml-4 px-4 py-2 bg-brand-success text-white rounded-lg hover:bg-green-700 text-sm font-medium transition-colors"
-                    >
-                      Attendance
-                    </Link>
+
+                    {/* Lesson Progress */}
+                    {cls.total_lessons && (
+                      <div className="flex-shrink-0 flex items-center">
+                        <span className="text-sm font-medium text-green-600">
+                          Lesson {cls.completed_lessons + 1}/{cls.total_lessons}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           )}
