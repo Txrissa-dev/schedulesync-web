@@ -82,6 +82,7 @@ export default function ProfilePage() {
     full_name: '',
     email: '',
     phone: '',
+    address: '',
     subjects: '',
     password: '',
     has_admin_access: false
