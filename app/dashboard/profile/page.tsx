@@ -392,7 +392,7 @@ export default function ProfilePage() {
 
       if (data) {
         setCentres([...centres, data])
-        setCentreForm({ name: '', address: '' })
+        setCentreForm({ name: '', address: '', phone: '', email: '' })
         setShowAddCentre(false)
       }
     } catch (error) {
