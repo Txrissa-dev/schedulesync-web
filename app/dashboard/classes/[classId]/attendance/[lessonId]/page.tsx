@@ -15,6 +15,7 @@ interface LessonDetails {
   class_id: string
   lesson_number: number
   scheduled_date: string
+  attendance_record_id?: string
 }
 
 export default function MarkAttendancePage({
