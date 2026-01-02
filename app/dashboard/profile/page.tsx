@@ -96,7 +96,9 @@ export default function ProfilePage() {
   const [showEditCentre, setShowEditCentre] = useState(false)
   const [centreForm, setCentreForm] = useState({
     name: '',
-    address: ''
+    address: '',
+    phone: '',
+    email: ''
   })
   const [centreNotes, setCentreNotes] = useState<CentreNote[]>([])
   const [newCentreNote, setNewCentreNote] = useState('')
