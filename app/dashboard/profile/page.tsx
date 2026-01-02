@@ -604,6 +604,7 @@ export default function ProfilePage() {
                           full_name: teacher.full_name,
                           email: teacher.email || '',
                           phone: teacher.phone || '',
+                          address: '',
                           subjects: '',
                           password: '',
                           has_admin_access: false
