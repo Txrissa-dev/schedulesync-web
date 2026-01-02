@@ -66,8 +66,8 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
       if (classData) {
         setClassDetails({
           ...classData,
-          teacher: classData.teachers as { full_name: string } | null,
-          centre: classData.centres as { name: string } | null
+          teacher: (classData.teachers as any)?.[0] || (classData.teachers as any) || null,
+          centre: (classData.centres as any)?.[0] || (classData.centres as any) || null
         })
       }
 

@@ -118,8 +118,8 @@ export default function AttendanceReportPage({ params }: { params: { classId: st
         id: classData.id,
         name: classData.name,
         subject: classData.subject,
-        teacher_name: classData.teachers?.full_name || 'Unknown',
-        centre_name: classData.centres?.name || 'Unknown',
+        teacher_name: (classData.teachers as any)?.[0]?.full_name || (classData.teachers as any)?.full_name || 'Unknown',
+        centre_name: (classData.centres as any)?.[0]?.name || (classData.centres as any)?.name || 'Unknown',
         student_count: classStudents.length,
         completed_lessons: lessons.length
       })
