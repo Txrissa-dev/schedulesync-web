@@ -890,7 +890,9 @@ export default function ProfilePage() {
                         setSelectedCentre(centre)
                         setCentreForm({
                           name: centre.name,
-                          address: centre.address || ''
+                          address: centre.address || '',
+                          phone: centre.phone || '',
+                          email: centre.email || ''
                         })
                         loadCentreNotes(centre.id)
                         setShowEditCentre(true)
