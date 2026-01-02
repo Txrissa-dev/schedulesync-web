@@ -568,7 +568,7 @@ export default function ProfilePage() {
             <h3 className="text-lg font-semibold text-gray-900">Teacher Management</h3>
             <button
               onClick={() => {
-                setTeacherForm({ full_name: '', email: '', phone: '', address: '' })
+                setTeacherForm({ full_name: '', email: '', phone: '', address: '', subjects: '', password: '', has_admin_access: false })
                 setShowAddTeacher(true)
               }}
               className="flex items-center gap-2 px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-primary-dark transition-colors text-sm font-medium"
