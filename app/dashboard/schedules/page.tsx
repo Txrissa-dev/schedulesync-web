@@ -23,6 +23,9 @@ const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const DAYS_FULL = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
+const getTeacherLabel = (teacher: { full_name?: string | null; name?: string | null; email?: string | null } | null) =>
+  teacher?.full_name || teacher?.name || teacher?.email || 'No teacher assigned'
+
 export default function SchedulesPage() {
   const [classes, setClasses] = useState<ClassSchedule[]>([])
   const [loading, setLoading] = useState(true)
@@ -65,7 +68,7 @@ export default function SchedulesPage() {
             room,
             total_lessons,
             centres:centre_id (name),
-            teachers:teacher_id (full_name),
+            teachers:teacher_id (full_name, name, email),
             class_students (student_id)
           `)
           .eq('organisation_id', profile.organisation_id)
@@ -97,7 +100,7 @@ export default function SchedulesPage() {
                 end_time: c.end_time,
                 room: c.room,
                 centre_name: c.centres?.name || 'Unknown',
-                teacher_name: c.teachers?.full_name || 'Unknown',
+                teacher_name: getTeacherLabel(c.teachers),
                 student_count: c.class_students?.length || 0,
                 completed_lessons: completedLessons,
                 total_lessons: c.total_lessons
@@ -343,6 +346,11 @@ export default function SchedulesPage() {
                           Teacher: {cls.teacher_name}
                         </p>
                       </div>
+                        <span className="text-sm text-gray-500">•</span>
+                        <p className="text-sm text-brand-secondary">
+                          Teacher: {cls.teacher_name}
+                        </p>
+                      </div>                    
                       <p className="text-sm text-gray-600 mb-2">{cls.subject}</p>
 
                       <div className="flex items-center gap-4 text-xs text-gray-500">
