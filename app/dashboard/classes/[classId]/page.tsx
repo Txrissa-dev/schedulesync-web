@@ -31,6 +31,9 @@ interface LessonStatus {
 const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
+const getTeacherLabel = (teacher: ClassDetails['teacher']) =>
+  teacher?.full_name || teacher?.name || 'No teacher assigned'
+
 export default function ClassDetailsPage({ params }: { params: { classId: string } }) {
   const router = useRouter()
   const [classDetails, setClassDetails] = useState<ClassDetails | null>(null)
@@ -198,6 +201,15 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
             <span className="font-medium">{classDetails.start_time} - {classDetails.end_time}</span>
           </div>
 
+          <div className="flex items-center gap-3 text-gray-700">
+            <div className="w-8 h-8 flex items-center justify-center bg-brand-primary bg-opacity-10 rounded-lg">
+              <svg className="w-5 h-5 text-brand-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A9 9 0 1119 9a4 4 0 00-7.293 7.293M15 21H9a4 4 0 010-8h6a4 4 0 010 8z" />
+              </svg>
+            </div>
+            <span className="font-medium">{getTeacherLabel(classDetails.teacher)}</span>
+          </div>
+          
           <div className="flex items-center gap-3 text-gray-700">
             <div className="w-8 h-8 flex items-center justify-center bg-brand-primary bg-opacity-10 rounded-lg">
               <svg className="w-5 h-5 text-brand-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
