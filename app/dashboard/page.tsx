@@ -50,7 +50,8 @@ export default function DashboardPage() {
   const [showAnnouncementForm, setShowAnnouncementForm] = useState(false)
   const [newAnnouncement, setNewAnnouncement] = useState({ title: '', message: '' })
   const [savingAnnouncement, setSavingAnnouncement] = useState(false)
-
+  const [deletingAnnouncementId, setDeletingAnnouncementId] = useState<string | null>(null)
+  
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
@@ -250,6 +251,30 @@ export default function DashboardPage() {
     }
   }
 
+  const handleDeleteAnnouncement = async (announcementId: string) => {
+    if (!isAdmin) return
+
+    const confirmed = window.confirm('Delete this announcement? This action cannot be undone.')
+    if (!confirmed) return
+
+    setDeletingAnnouncementId(announcementId)
+    try {
+      const { error } = await supabase
+        .from('announcements')
+        .delete()
+        .eq('id', announcementId)
+
+      if (error) throw error
+
+      setAnnouncements((prev) => prev.filter((announcement) => announcement.id !== announcementId))
+    } catch (error) {
+      console.error('Error deleting announcement:', error)
+      alert('Failed to delete announcement')
+    } finally {
+      setDeletingAnnouncementId(null)
+    }
+  }
+
   if (loading) {
     return <div className="text-center py-12">Loading dashboard...</div>
   }
@@ -442,6 +467,16 @@ export default function DashboardPage() {
                       <span>{new Date(announcement.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                     </div>
                   </div>
+                  {isAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteAnnouncement(announcement.id)}
+                      disabled={deletingAnnouncementId === announcement.id}
+                      className="ml-4 inline-flex items-center text-xs font-medium text-red-600 hover:text-red-700 disabled:opacity-50"
+                    >
+                      {deletingAnnouncementId === announcement.id ? 'Deleting...' : 'Delete'}
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
