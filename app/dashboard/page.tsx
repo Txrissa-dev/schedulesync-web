@@ -302,7 +302,7 @@ export default function DashboardPage() {
               <p className="text-sm text-green-700 mt-2">Enrolled students</p>
             </div>
 
-           <div className="bg-blue-50 rounded-xl p-6 border border-blue-100">
+            <div className="bg-blue-50 rounded-xl p-6 border border-blue-100">
               <h3 className="text-lg font-semibold text-brand-secondary mb-2">Teachers</h3>
               <p className="text-3xl font-bold text-brand-secondary">{stats.teachers}</p>
               <p className="text-sm text-blue-700 mt-2">Active teachers</p>
@@ -313,8 +313,8 @@ export default function DashboardPage() {
               <p className="text-3xl font-bold text-brand-warning">{stats.classes}</p>
               <p className="text-sm text-amber-700 mt-2">Total classes</p>
             </div>
-
-                    )}
+          </div>
+        )}
             
         {isTeacher && todayClasses.length > 0 && (
           <div className="mt-8">
