@@ -14,7 +14,7 @@ interface ClassDetails {
   end_time: string
   room: string | null
   total_lessons: number | null
-  teacher: { full_name: string } | null
+  teacher: { full_name: string | null } | null
   centre: { name: string } | null
 }
 
@@ -196,6 +196,15 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
               </svg>
             </div>
             <span className="font-medium">{classDetails.start_time} - {classDetails.end_time}</span>
+          </div>
+
+          <div className="flex items-center gap-3 text-gray-700">
+            <div className="w-8 h-8 flex items-center justify-center bg-brand-primary bg-opacity-10 rounded-lg">
+              <svg className="w-5 h-5 text-brand-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A9 9 0 1119 9a4 4 0 00-7.293 7.293M15 21H9a4 4 0 010-8h6a4 4 0 010 8z" />
+              </svg>
+            </div>
+            <span className="font-medium">{classDetails.teacher?.full_name || 'No teacher assigned'}</span>
           </div>
 
           <div className="flex items-center gap-3 text-gray-700">
