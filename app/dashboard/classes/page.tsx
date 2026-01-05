@@ -13,7 +13,7 @@ interface Class {
   end_time: string
   room: string | null
   teacher: {
-    full_name: string | null
+    name: string | null
   } | null
   centre: {
     name: string
@@ -382,6 +382,13 @@ export default function ClassesPage() {
                             </svg>
                             <span>{daysOfWeekShort[cls.day_of_week]}, {cls.start_time} - {cls.end_time}</span>
                           </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A9 9 0 1119 9a4 4 0 00-7.293 7.293M15 21H9a4 4 0 010-8h6a4 4 0 010 8z" />
+                          </svg>
+                          <span>{cls.teacher?.name || 'No teacher assigned'}</span>
                         </div>
 
                         <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
