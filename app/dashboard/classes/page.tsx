@@ -13,7 +13,7 @@ interface Class {
   end_time: string
   room: string | null
   teacher: {
-    name: string
+    full_name: string | null
   } | null
   centre: {
     name: string
@@ -25,7 +25,7 @@ interface Class {
 
 interface Teacher {
   id: string
-  name: string
+  full_name: string
   email: string | null
 }
 
@@ -102,7 +102,7 @@ export default function ClassesPage() {
             end_time,
             room,
             total_lessons,
-            teachers:teacher_id (name),
+            teachers:teacher_id (full_name),
             centres:centre_id (name),
             class_students (student_id)
           `)
@@ -149,7 +149,7 @@ export default function ClassesPage() {
         if (profile.has_admin_access || profile.is_super_admin) {
           const { data: teachersData } = await supabase
             .from('teachers')
-            .select('id, name, email')
+            .select('id, full_name, email')
             .eq('organisation_id', profile.organisation_id)
 
           if (teachersData) setTeachers(teachersData)
@@ -384,6 +384,13 @@ export default function ClassesPage() {
                           </div>
                         </div>
 
+                        <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A9 9 0 1119 9a4 4 0 00-7.293 7.293M15 21H9a4 4 0 010-8h6a4 4 0 010 8z" />
+                          </svg>
+                          <span>{cls.teacher?.full_name || 'No teacher assigned'}</span>
+                        </div>
+                        
                         <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -460,7 +467,7 @@ export default function ClassesPage() {
                   <option value="">Select a teacher</option>
                   {teachers.map((teacher) => (
                     <option key={teacher.id} value={teacher.id}>
-                      {teacher.name} {teacher.email ? `(${teacher.email})` : ''}
+                      {teacher.full_name} {teacher.email ? `(${teacher.email})` : ''}
                     </option>
                   ))}
                 </select>
