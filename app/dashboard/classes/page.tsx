@@ -13,7 +13,7 @@ interface Class {
   end_time: string
   room: string | null
   teacher: {
-     name?: string | null
+    name?: string | null
     full_name?: string | null
   } | null
   centre: {
@@ -25,9 +25,9 @@ interface Class {
 }
 
 interface Teacher {
+  id: string
   name?: string | null
   full_name?: string | null
-  full_name: string
   email: string | null
 }
 
@@ -43,6 +43,9 @@ interface Student {
 
 const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 const daysOfWeekShort = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
+const getTeacherLabel = (teacher: Class['teacher']) =>
+  teacher?.full_name || teacher?.name || 'No teacher assigned'
 
 export default function ClassesPage() {
   const [classes, setClasses] = useState<Class[]>([])
@@ -386,6 +389,13 @@ export default function ClassesPage() {
                           </div>
                         </div>
 
+                        <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A9 9 0 1119 9a4 4 0 00-7.293 7.293M15 21H9a4 4 0 010-8h6a4 4 0 010 8z" />
+                          </svg>
+                          <span>{getTeacherLabel(cls.teacher)}</span>
+                        </div>
+                        
                         <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A9 9 0 1119 9a4 4 0 00-7.293 7.293M15 21H9a4 4 0 010-8h6a4 4 0 010 8z" />
