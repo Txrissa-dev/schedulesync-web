@@ -396,27 +396,6 @@ export default function ClassesPage() {
                           <span>{getTeacherLabel(cls.teacher)}</span>
                         </div>
                         
-                        <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A9 9 0 1119 9a4 4 0 00-7.293 7.293M15 21H9a4 4 0 010-8h6a4 4 0 010 8z" />
-                          </svg>
-                          <span>{cls.teacher?.full_name || cls.teacher?.name || 'No teacher assigned'}</span>
-                        </div>
-                        
-                        <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A9 9 0 1119 9a4 4 0 00-7.293 7.293M15 21H9a4 4 0 010-8h6a4 4 0 010 8z" />
-                          </svg>
-                          <span>{cls.teacher?.name || 'No teacher assigned'}</span>
-                        </div>
-
-                        <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A9 9 0 1119 9a4 4 0 00-7.293 7.293M15 21H9a4 4 0 010-8h6a4 4 0 010 8z" />
-                          </svg>
-                          <span>{cls.teacher?.full_name || 'No teacher assigned'}</span>
-                        </div>
-                        
                         <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
