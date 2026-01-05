@@ -336,9 +336,14 @@ export default function SchedulesPage() {
 
                     {/* Class Info */}
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-semibold text-gray-900 mb-1">{cls.name}</h4>
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1">
+                        <h4 className="font-semibold text-gray-900">{cls.name}</h4>
+                        <span className="text-sm text-gray-500">•</span>
+                        <p className="text-sm text-brand-secondary">
+                          Teacher: {cls.teacher_name}
+                        </p>
+                      </div>
                       <p className="text-sm text-gray-600 mb-2">{cls.subject}</p>
-                      <p className="text-sm text-brand-secondary mb-2">{cls.teacher_name}</p>
 
                       <div className="flex items-center gap-4 text-xs text-gray-500">
                         <div className="flex items-center gap-1">
