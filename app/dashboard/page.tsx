@@ -288,32 +288,34 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="bg-orange-50 rounded-xl p-6 border border-orange-100">
-            <h3 className="text-lg font-semibold text-brand-primary mb-2">Centres</h3>
-            <p className="text-3xl font-bold text-brand-primary">{stats.centres}</p>
-            <p className="text-sm text-orange-700 mt-2">Active centres</p>
-          </div>
+        {isAdmin && (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="bg-orange-50 rounded-xl p-6 border border-orange-100">
+              <h3 className="text-lg font-semibold text-brand-primary mb-2">Centres</h3>
+              <p className="text-3xl font-bold text-brand-primary">{stats.centres}</p>
+              <p className="text-sm text-orange-700 mt-2">Active centres</p>
+            </div>
 
-          <div className="bg-green-50 rounded-xl p-6 border border-green-100">
-            <h3 className="text-lg font-semibold text-brand-success mb-2">Students</h3>
-            <p className="text-3xl font-bold text-brand-success">{stats.students}</p>
-            <p className="text-sm text-green-700 mt-2">Enrolled students</p>
-          </div>
+            <div className="bg-green-50 rounded-xl p-6 border border-green-100">
+              <h3 className="text-lg font-semibold text-brand-success mb-2">Students</h3>
+              <p className="text-3xl font-bold text-brand-success">{stats.students}</p>
+              <p className="text-sm text-green-700 mt-2">Enrolled students</p>
+            </div>
 
-          <div className="bg-blue-50 rounded-xl p-6 border border-blue-100">
-            <h3 className="text-lg font-semibold text-brand-secondary mb-2">Teachers</h3>
-            <p className="text-3xl font-bold text-brand-secondary">{stats.teachers}</p>
-            <p className="text-sm text-blue-700 mt-2">Active teachers</p>
-          </div>
+           <div className="bg-blue-50 rounded-xl p-6 border border-blue-100">
+              <h3 className="text-lg font-semibold text-brand-secondary mb-2">Teachers</h3>
+              <p className="text-3xl font-bold text-brand-secondary">{stats.teachers}</p>
+              <p className="text-sm text-blue-700 mt-2">Active teachers</p>
+            </div>
 
-          <div className="bg-amber-50 rounded-xl p-6 border border-amber-100">
-            <h3 className="text-lg font-semibold text-brand-warning mb-2">Classes</h3>
-            <p className="text-3xl font-bold text-brand-warning">{stats.classes}</p>
-            <p className="text-sm text-amber-700 mt-2">Total classes</p>
-          </div>
-        </div>
+            <div className="bg-amber-50 rounded-xl p-6 border border-amber-100">
+              <h3 className="text-lg font-semibold text-brand-warning mb-2">Classes</h3>
+              <p className="text-3xl font-bold text-brand-warning">{stats.classes}</p>
+              <p className="text-sm text-amber-700 mt-2">Total classes</p>
+            </div>
 
+                    )}
+            
         {isTeacher && todayClasses.length > 0 && (
           <div className="mt-8">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Your Classes Today</h3>
