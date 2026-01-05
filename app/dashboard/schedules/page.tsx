@@ -29,7 +29,12 @@ export default function SchedulesPage() {
   const [userProfile, setUserProfile] = useState<any>(null)
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date())
+  const [lessonsByDate, setLessonsByDate] = useState<Record<string, string[]>>({})
 
+  const getDateKey = (date: Date) => date.toLocaleDateString('en-CA')
+
+
+  
   useEffect(() => {
     const fetchSchedules = async () => {
       try {
@@ -111,6 +116,47 @@ export default function SchedulesPage() {
     fetchSchedules()
   }, [])
 
+  useEffect(() => {
+    const fetchLessonDates = async () => {
+      if (classes.length === 0) {
+        setLessonsByDate({})
+        return
+      }
+
+      try {
+        const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
+        const monthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
+        const classIds = classes.map((cls) => cls.id)
+
+        const { data: lessons, error } = await supabase
+          .from('lesson_statuses')
+          .select('class_id, scheduled_date')
+          .in('class_id', classIds)
+          .gte('scheduled_date', getDateKey(monthStart))
+          .lte('scheduled_date', getDateKey(monthEnd))
+
+        if (error) {
+          console.error('Error fetching lesson dates:', error)
+          return
+        }
+
+        const groupedLessons: Record<string, string[]> = {}
+        lessons?.forEach((lesson) => {
+          if (!groupedLessons[lesson.scheduled_date]) {
+            groupedLessons[lesson.scheduled_date] = []
+          }
+          groupedLessons[lesson.scheduled_date].push(lesson.class_id)
+        })
+
+        setLessonsByDate(groupedLessons)
+      } catch (error) {
+        console.error('Error fetching lesson dates:', error)
+      }
+    }
+
+    fetchLessonDates()
+  }, [classes, currentDate])
+  
   // Generate calendar days for current month
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear()
@@ -137,14 +183,20 @@ export default function SchedulesPage() {
 
   // Check if a date has classes
   const hasClassesOnDate = (date: Date) => {
-    const dayOfWeek = date.getDay()
-    return classes.some(cls => cls.day_of_week === dayOfWeek)
+    const dateKey = getDateKey(date)
+    return Boolean(lessonsByDate[dateKey]?.length)
   }
 
   // Get classes for selected date
   const getClassesForDate = (date: Date) => {
-    const dayOfWeek = date.getDay()
-    return classes.filter(cls => cls.day_of_week === dayOfWeek)
+    const dateKey = getDateKey(date)
+    const classIds = lessonsByDate[dateKey]
+    if (!classIds || classIds.length === 0) {
+      return []
+    }
+
+    const classIdSet = new Set(classIds)
+    return classes.filter(cls => classIdSet.has(cls.id))
   }
 
   // Navigate months
