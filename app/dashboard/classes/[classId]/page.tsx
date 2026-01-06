@@ -385,6 +385,7 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
         .filter((name) => name !== 'No teacher assigned' && name !== primaryTeacherName)
     )
   )
+  const coTeacherLabel = coTeacherNames.length > 0 ? coTeacherNames.join(', ') : 'No co-teacher assigned'  
   const teacherNames = coTeacherNames.length > 0
     ? `${primaryTeacherName} • ${coTeacherNames.join(', ')}`
     : primaryTeacherName
@@ -444,6 +445,24 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
               </svg>
             </div>
             <span className="font-medium">{teacherNames}</span>
+          </div>
+
+          <div className="flex items-center justify-between gap-3 text-gray-700">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 flex items-center justify-center bg-brand-primary bg-opacity-10 rounded-lg">
+                <svg className="w-5 h-5 text-brand-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a4 4 0 00-4-4h-1m-4 6H4v-2a4 4 0 014-4h1m4 6v-2a4 4 0 00-4-4H8m0-4a4 4 0 118 0 4 4 0 01-8 0z" />
+                </svg>
+              </div>
+              <span className="font-medium">{coTeacherLabel}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowEditModal(true)}
+              className="text-sm text-brand-primary font-medium hover:text-brand-primary-dark"
+            >
+              {coTeacherNames.length > 0 ? 'Edit co-teachers' : 'Add co-teacher'}
+            </button>
           </div>
           
           <div className="flex items-center gap-3 text-gray-700">
