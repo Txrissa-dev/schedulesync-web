@@ -264,7 +264,7 @@ export default function ClassesPage() {
         for (let i = 0; i < totalLessons; i++) {
           const lessonDate = new Date(startDate)
           lessonDate.setDate(startDate.getDate() + (i * 7))
-          const formattedDate = lessonDate.toISOString().split('T')[0]          
+          const formattedDate = lessonDate.toISOString().split('T')[0]      
 
           lessonRecords.push({
             class_id: newClass.id,
@@ -284,7 +284,7 @@ export default function ClassesPage() {
           console.error('Error creating lesson schedule:', lessonsError)
           alert(`Class created but failed to generate lesson schedule: ${lessonsError.message}`)
         }
-        
+
         const unmatchedCoTeacherDates = cleanedCoTeacherAssignments.filter(
           (assignment) => !lessonRecords.some((lesson) => lesson.scheduled_date === assignment.date)
         )
