@@ -41,6 +41,15 @@ interface Student {
   name: string
 }
 
+interface LessonRecord {
+  class_id: string
+  lesson_number: number
+  scheduled_date: string
+  status: 'scheduled'
+  notes: null
+  co_teacher_id: string | null
+}
+
 const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 const daysOfWeekShort = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
@@ -256,7 +265,7 @@ export default function ClassesPage() {
       if (newClass && classForm.total_lessons && classForm.start_date) {
         const totalLessons = parseInt(classForm.total_lessons)
         const startDate = new Date(classForm.start_date)
-        const lessonRecords = []
+        const lessonRecords: LessonRecord[] = []
         const coTeacherByDate = new Map(
           cleanedCoTeacherAssignments.map((assignment) => [assignment.date, assignment.teacher_id])
         )
