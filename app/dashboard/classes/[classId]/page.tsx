@@ -385,7 +385,7 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
         .filter((name) => name !== 'No teacher assigned' && name !== primaryTeacherName)
     )
   )
-  const coTeacherLabel = coTeacherNames.length > 0 ? coTeacherNames.join(', ') : 'No co-teacher assigned'  
+  const coTeacherLabel = coTeacherNames.length > 0 ? coTeacherNames.join(', ') : 'No co-teacher assigned'
   const teacherNames = coTeacherNames.length > 0
     ? `${primaryTeacherName} • ${coTeacherNames.join(', ')}`
     : primaryTeacherName
