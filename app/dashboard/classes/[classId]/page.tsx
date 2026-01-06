@@ -14,6 +14,9 @@ interface ClassDetails {
   end_time: string
   room: string | null
   total_lessons: number | null
+  teacher_id: string | null
+  centre_id: string | null
+  organisation_id: string | null
   teacher: { name?: string | null; full_name?: string | null } | null
   centre: { name: string } | null
 }
@@ -26,6 +29,19 @@ interface LessonStatus {
   status: 'scheduled' | 'completed' | 'cancelled' | 'rescheduled'
   attendance_record_id: string | null
   notes: string | null
+}
+
+interface TeacherOption {
+  id: string
+  name?: string | null
+  full_name?: string | null
+  email?: string | null
+  subjects?: string[] | null
+}
+
+interface CentreOption {
+  id: string
+  name: string
 }
 
 const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
@@ -41,7 +57,24 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
   const [loading, setLoading] = useState(true)
   const [selectedLesson, setSelectedLesson] = useState<LessonStatus | null>(null)
   const [showLessonModal, setShowLessonModal] = useState(false)
-
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [savingEdits, setSavingEdits] = useState(false)
+  const [teachers, setTeachers] = useState<TeacherOption[]>([])
+  const [centres, setCentres] = useState<CentreOption[]>([])
+  const [availableSubjects, setAvailableSubjects] = useState<string[]>([])
+  const [newLessonDates, setNewLessonDates] = useState<string[]>([''])
+  const [editForm, setEditForm] = useState({
+    name: '',
+    subject: '',
+    teacher_id: '',
+    centre_id: '',
+    day_of_week: '',
+    start_time: '',
+    end_time: '',
+    room: '',
+    total_lessons: ''
+  })
+  
   useEffect(() => {
     fetchClassData()
   }, [params.classId])
@@ -60,6 +93,9 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
           end_time,
           room,
           total_lessons,
+          teacher_id,
+          centre_id,
+          organisation_id,
           teachers:teacher_id (*),
           centres:centre_id (name)
         `)
@@ -89,6 +125,59 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
     } finally {
       setLoading(false)
     }
+  }
+
+    useEffect(() => {
+    if (!classDetails) return
+    setEditForm({
+      name: classDetails.name || '',
+      subject: classDetails.subject || '',
+      teacher_id: classDetails.teacher_id || '',
+      centre_id: classDetails.centre_id || '',
+      day_of_week: classDetails.day_of_week?.toString() || '',
+      start_time: classDetails.start_time || '',
+      end_time: classDetails.end_time || '',
+      room: classDetails.room || '',
+      total_lessons: classDetails.total_lessons?.toString() || ''
+    })
+    setNewLessonDates([''])
+  }, [classDetails])
+
+  useEffect(() => {
+    const fetchOptions = async () => {
+      if (!classDetails?.organisation_id) return
+      const [{ data: teachersData }, { data: centresData }] = await Promise.all([
+        supabase
+          .from('teachers')
+          .select('id, name, full_name, email, subjects')
+          .eq('organisation_id', classDetails.organisation_id),
+        supabase
+          .from('centres')
+          .select('id, name')
+          .eq('organisation_id', classDetails.organisation_id)
+      ])
+      if (teachersData) setTeachers(teachersData)
+      if (centresData) setCentres(centresData)
+    }
+
+    fetchOptions()
+  }, [classDetails?.organisation_id])
+
+  useEffect(() => {
+    if (!editForm.teacher_id) {
+      setAvailableSubjects([])
+      return
+    }
+    const teacher = teachers.find(t => t.id === editForm.teacher_id)
+    if (teacher?.subjects && Array.isArray(teacher.subjects)) {
+      setAvailableSubjects(teacher.subjects)
+    } else {
+      setAvailableSubjects([])
+    }
+  }, [editForm.teacher_id, teachers])
+
+  const handleTeacherChange = (teacherId: string) => {
+    setEditForm(prev => ({ ...prev, teacher_id: teacherId, subject: '' }))
   }
 
   const handleLessonClick = (lesson: LessonStatus) => {
@@ -143,6 +232,72 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
     router.push(`/dashboard/classes/${params.classId}/attendance/${selectedLesson.id}`)
   }
 
+  const handleSaveEdits = async () => {
+    if (!classDetails) return
+    if (!editForm.name || !editForm.subject || !editForm.teacher_id || !editForm.centre_id ||
+        !editForm.day_of_week || !editForm.start_time || !editForm.end_time) {
+      alert('Please fill in all required fields')
+      return
+    }
+
+    const cleanedLessonDates = newLessonDates
+      .map(date => date.trim())
+      .filter(Boolean)
+
+    const existingLessonsCount = lessons.length
+    const nextLessonNumber = lessons.reduce((max, lesson) => Math.max(max, lesson.lesson_number), 0) + 1
+    const desiredTotalLessons = editForm.total_lessons ? parseInt(editForm.total_lessons) : null
+    const minTotalLessons = existingLessonsCount + cleanedLessonDates.length
+    const totalLessonsToSave = desiredTotalLessons
+      ? Math.max(desiredTotalLessons, minTotalLessons)
+      : minTotalLessons
+
+    setSavingEdits(true)
+    try {
+      const { error: updateError } = await supabase
+        .from('classes')
+        .update({
+          name: editForm.name,
+          subject: editForm.subject,
+          teacher_id: editForm.teacher_id,
+          centre_id: editForm.centre_id,
+          day_of_week: parseInt(editForm.day_of_week),
+          start_time: editForm.start_time,
+          end_time: editForm.end_time,
+          room: editForm.room || null,
+          total_lessons: totalLessonsToSave || null
+        })
+        .eq('id', classDetails.id)
+
+      if (updateError) throw updateError
+
+      if (cleanedLessonDates.length > 0) {
+        const newLessons = cleanedLessonDates.map((date, index) => ({
+          class_id: classDetails.id,
+          lesson_number: nextLessonNumber + index,
+          scheduled_date: date,
+          status: 'scheduled',
+          notes: null
+        }))
+
+        const { error: lessonError } = await supabase
+          .from('lesson_statuses')
+          .insert(newLessons)
+
+        if (lessonError) throw lessonError
+      }
+
+      await fetchClassData()
+      setShowEditModal(false)
+      setNewLessonDates([''])
+    } catch (error) {
+      console.error('Error updating class:', error)
+      alert('Failed to update class details')
+    } finally {
+      setSavingEdits(false)
+    }
+  }
+
   if (loading) {
     return <div className="text-center py-12">Loading class details...</div>
   }
@@ -170,7 +325,10 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
           Back
         </button>
         <h2 className="text-lg font-semibold text-brand-primary">Class Details</h2>
-        <button className="p-2 text-brand-secondary hover:text-brand-secondary-dark">
+        <button
+          onClick={() => setShowEditModal(true)}
+          className="p-2 text-brand-secondary hover:text-brand-secondary-dark"
+        >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
           </svg>
@@ -414,6 +572,214 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
           </div>
         </div>
       )}
+
+      {/* Edit Class Modal */}
+      {showEditModal && classDetails && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold text-gray-900">Edit Class Details</h3>
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Class Name *</label>
+                <input
+                  type="text"
+                  value={editForm.name}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Teacher *</label>
+                <select
+                  value={editForm.teacher_id}
+                  onChange={(e) => handleTeacherChange(e.target.value)}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+                >
+                  <option value="">Select a teacher</option>
+                  {teachers.map((teacher) => {
+                    const teacherLabel = teacher.full_name || teacher.name || teacher.email || 'Unnamed teacher'
+                    const showEmail = teacher.email && teacherLabel !== teacher.email
+                    return (
+                      <option key={teacher.id} value={teacher.id}>
+                        {teacherLabel} {showEmail ? `(${teacher.email})` : ''}
+                      </option>
+                    )
+                  })}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Subject *</label>
+                <select
+                  value={editForm.subject}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, subject: e.target.value }))}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  disabled={!editForm.teacher_id || availableSubjects.length === 0}
+                >
+                  <option value="">
+                    {!editForm.teacher_id
+                      ? 'Select a teacher first'
+                      : availableSubjects.length === 0
+                      ? 'No subjects available'
+                      : 'Select a subject'}
+                  </option>
+                  {availableSubjects.map((subject, index) => (
+                    <option key={index} value={subject}>
+                      {subject}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Centre *</label>
+                <select
+                  value={editForm.centre_id}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, centre_id: e.target.value }))}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+                >
+                  <option value="">Select a centre</option>
+                  {centres.map((centre) => (
+                    <option key={centre.id} value={centre.id}>
+                      {centre.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Day of Week *</label>
+                  <select
+                    value={editForm.day_of_week}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, day_of_week: e.target.value }))}
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+                  >
+                    <option value="">Select day</option>
+                    {daysOfWeek.map((day, index) => (
+                      <option key={day} value={index}>
+                        {day}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Total Lessons</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={editForm.total_lessons}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, total_lessons: e.target.value }))}
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Start Time *</label>
+                  <input
+                    type="time"
+                    value={editForm.start_time}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, start_time: e.target.value }))}
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">End Time *</label>
+                  <input
+                    type="time"
+                    value={editForm.end_time}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, end_time: e.target.value }))}
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Room</label>
+                <input
+                  type="text"
+                  value={editForm.room}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, room: e.target.value }))}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+                />
+              </div>
+
+              <div className="border-t border-gray-200 pt-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-sm font-semibold text-gray-700">Add Lesson Dates</h4>
+                  <button
+                    type="button"
+                    onClick={() => setNewLessonDates(prev => [...prev, ''])}
+                    className="text-sm text-brand-primary font-medium hover:text-brand-primary-dark"
+                  >
+                    + Add date
+                  </button>
+                </div>
+
+                <div className="space-y-2">
+                  {newLessonDates.map((date, index) => (
+                    <div key={`${index}-${date}`} className="flex items-center gap-2">
+                      <input
+                        type="date"
+                        value={date}
+                        onChange={(e) => {
+                          const updated = [...newLessonDates]
+                          updated[index] = e.target.value
+                          setNewLessonDates(updated)
+                        }}
+                        className="flex-1 px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+                      />
+                      {newLessonDates.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => setNewLessonDates(prev => prev.filter((_, idx) => idx !== index))}
+                          className="px-3 py-2 text-sm text-gray-500 hover:text-red-600"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-2 text-xs text-gray-500">
+                  New dates will be added to the schedule in the next available lesson slots.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium"
+                disabled={savingEdits}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveEdits}
+                className="px-6 py-2 bg-brand-primary text-white rounded-lg font-medium hover:bg-brand-primary-dark disabled:opacity-60"
+                disabled={savingEdits}
+              >
+                {savingEdits ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}      
     </div>
   )
 }
