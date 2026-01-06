@@ -76,7 +76,8 @@ export default function ClassesPage() {
   const [availableSubjects, setAvailableSubjects] = useState<string[]>([])
   const [studentSearchQuery, setStudentSearchQuery] = useState('')
   const [filteredStudents, setFilteredStudents] = useState<Student[]>([])
-
+  const [coTeacherAssignments, setCoTeacherAssignments] = useState([{ date: '', teacher_id: '' }])
+  
   useEffect(() => {
     const fetchClasses = async () => {
       try {
@@ -222,6 +223,10 @@ export default function ClassesPage() {
       return
     }
 
+    const cleanedCoTeacherAssignments = coTeacherAssignments
+      .map((assignment) => ({ date: assignment.date.trim(), teacher_id: assignment.teacher_id }))
+      .filter((assignment) => assignment.date && assignment.teacher_id)
+
     setSavingClass(true)
     try {
       const { data: newClass, error: classError } = await supabase
@@ -252,17 +257,22 @@ export default function ClassesPage() {
         const totalLessons = parseInt(classForm.total_lessons)
         const startDate = new Date(classForm.start_date)
         const lessonRecords = []
-
+        const coTeacherByDate = new Map(
+          cleanedCoTeacherAssignments.map((assignment) => [assignment.date, assignment.teacher_id])
+        )
+        
         for (let i = 0; i < totalLessons; i++) {
           const lessonDate = new Date(startDate)
           lessonDate.setDate(startDate.getDate() + (i * 7))
+          const formattedDate = lessonDate.toISOString().split('T')[0]          
 
           lessonRecords.push({
             class_id: newClass.id,
             lesson_number: i + 1,
-            scheduled_date: lessonDate.toISOString().split('T')[0],
+            scheduled_date: formattedDate,
             status: 'scheduled',
-            notes: null
+            notes: null,
+            co_teacher_id: coTeacherByDate.get(formattedDate) || null
           })
         }
 
@@ -273,6 +283,14 @@ export default function ClassesPage() {
         if (lessonsError) {
           console.error('Error creating lesson schedule:', lessonsError)
           alert(`Class created but failed to generate lesson schedule: ${lessonsError.message}`)
+        }
+        
+        const unmatchedCoTeacherDates = cleanedCoTeacherAssignments.filter(
+          (assignment) => !lessonRecords.some((lesson) => lesson.scheduled_date === assignment.date)
+        )
+
+        if (unmatchedCoTeacherDates.length > 0) {
+          alert('Some co-teacher dates did not match scheduled lessons and were skipped.')
         }
       }
 
@@ -309,6 +327,7 @@ export default function ClassesPage() {
         start_date: '',
       })
       setSelectedStudents([])
+      setCoTeacherAssignments([{ date: '', teacher_id: '' }])
     } catch (error: any) {
       console.error('Error adding class:', error)
       alert(error.message || 'Failed to add class')
@@ -452,6 +471,7 @@ export default function ClassesPage() {
                   setShowAddClass(false)
                   setAvailableSubjects([])
                   setSelectedStudents([])
+                  setCoTeacherAssignments([{ date: '', teacher_id: '' }])
                 }}
                 className="text-gray-400 hover:text-gray-600"
               >
@@ -611,6 +631,74 @@ export default function ClassesPage() {
                 </div>
               </div>
 
+              {/* Co-teacher Assignments */}
+              <div className="border-t border-gray-200 pt-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-sm font-semibold text-gray-700">Co-teacher Assignments (Optional)</h4>
+                  <button
+                    type="button"
+                    onClick={() => setCoTeacherAssignments((prev) => [...prev, { date: '', teacher_id: '' }])}
+                    className="text-sm text-brand-primary font-medium hover:text-brand-primary-dark"
+                  >
+                    + Add co-teacher
+                  </button>
+                </div>
+
+                <div className="space-y-2">
+                  {coTeacherAssignments.map((assignment, index) => (
+                    <div key={`${assignment.date}-${index}`} className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      <input
+                        type="date"
+                        value={assignment.date}
+                        onChange={(e) => {
+                          const updated = [...coTeacherAssignments]
+                          updated[index] = { ...updated[index], date: e.target.value }
+                          setCoTeacherAssignments(updated)
+                        }}
+                        className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+                      />
+                      <select
+                        value={assignment.teacher_id}
+                        onChange={(e) => {
+                          const updated = [...coTeacherAssignments]
+                          updated[index] = { ...updated[index], teacher_id: e.target.value }
+                          setCoTeacherAssignments(updated)
+                        }}
+                        className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+                      >
+                        <option value="">Select co-teacher</option>
+                        {teachers
+                          .filter((teacher) => teacher.id !== classForm.teacher_id)
+                          .map((teacher) => {
+                            const teacherLabel = teacher.full_name || teacher.name || teacher.email || 'Unnamed teacher'
+                            const showEmail = teacher.email && teacherLabel !== teacher.email
+
+                            return (
+                              <option key={teacher.id} value={teacher.id}>
+                                {teacherLabel} {showEmail ? `(${teacher.email})` : ''}
+                              </option>
+                            )
+                          })}
+                      </select>
+                      {coTeacherAssignments.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setCoTeacherAssignments((prev) => prev.filter((_, idx) => idx !== index))
+                          }
+                          className="md:col-span-2 text-left text-sm text-gray-500 hover:text-red-600"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-2 text-xs text-gray-500">
+                  Assign a co-teacher to specific lesson dates. Only dates that match scheduled lessons will be applied.
+                </p>
+              </div>
+
               {/* Assign Students */}
               <div className="pt-2 border-t border-gray-200">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -742,6 +830,7 @@ export default function ClassesPage() {
                     setAvailableSubjects([])
                     setStudentSearchQuery('')
                     setFilteredStudents([])
+                    setCoTeacherAssignments([{ date: '', teacher_id: '' }])
                   }}
                   className="px-4 py-2 text-sm font-medium text-gray-600 border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                 >
