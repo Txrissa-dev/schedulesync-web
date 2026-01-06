@@ -127,7 +127,7 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
     }
   }
 
-    useEffect(() => {
+  useEffect(() => {
     if (!classDetails) return
     setEditForm({
       name: classDetails.name || '',
@@ -248,9 +248,11 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
     const nextLessonNumber = lessons.reduce((max, lesson) => Math.max(max, lesson.lesson_number), 0) + 1
     const desiredTotalLessons = editForm.total_lessons ? parseInt(editForm.total_lessons) : null
     const minTotalLessons = existingLessonsCount + cleanedLessonDates.length
+    const currentTotalLessons = classDetails.total_lessons ?? null
+    const fallbackTotalLessons = cleanedLessonDates.length > 0 ? minTotalLessons : currentTotalLessons
     const totalLessonsToSave = desiredTotalLessons
       ? Math.max(desiredTotalLessons, minTotalLessons)
-      : minTotalLessons
+      : fallbackTotalLessons
 
     setSavingEdits(true)
     try {
@@ -290,9 +292,10 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
       await fetchClassData()
       setShowEditModal(false)
       setNewLessonDates([''])
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating class:', error)
-      alert('Failed to update class details')
+      const message = error?.message ? `Failed to update class details: ${error.message}` : 'Failed to update class details'
+      alert(message)
     } finally {
       setSavingEdits(false)
     }
@@ -779,7 +782,7 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
             </div>
           </div>
         </div>
-      )}      
+      )}
     </div>
   )
 }
