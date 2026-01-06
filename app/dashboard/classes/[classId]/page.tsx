@@ -248,14 +248,38 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
     const nextLessonNumber = lessons.reduce((max, lesson) => Math.max(max, lesson.lesson_number), 0) + 1
     const desiredTotalLessons = editForm.total_lessons ? parseInt(editForm.total_lessons) : null
     const minTotalLessons = existingLessonsCount + cleanedLessonDates.length
+        const isReducingLessons = desiredTotalLessons !== null
+      && cleanedLessonDates.length === 0
+      && desiredTotalLessons < existingLessonsCount
+    const completedLessonsOverLimit = isReducingLessons
+      ? lessons.filter(lesson => lesson.status === 'completed' && lesson.lesson_number > desiredTotalLessons)
+      : []
     const currentTotalLessons = classDetails.total_lessons ?? null
     const fallbackTotalLessons = cleanedLessonDates.length > 0 ? minTotalLessons : currentTotalLessons
-    const totalLessonsToSave = desiredTotalLessons
-      ? Math.max(desiredTotalLessons, minTotalLessons)
+    const totalLessonsToSave = desiredTotalLessons !== null
+      ? cleanedLessonDates.length > 0
+        ? Math.max(desiredTotalLessons, minTotalLessons)
+        : desiredTotalLessons
       : fallbackTotalLessons
+
+        if (completedLessonsOverLimit.length > 0) {
+      alert('Total lessons cannot be less than completed lessons.')
+      return
+    }
 
     setSavingEdits(true)
     try {
+      if (isReducingLessons) {
+        const { error: deleteError } = await supabase
+          .from('lesson_statuses')
+          .delete()
+          .eq('class_id', classDetails.id)
+          .gt('lesson_number', desiredTotalLessons)
+          .neq('status', 'completed')
+
+        if (deleteError) throw deleteError
+      }
+      
       const { error: updateError } = await supabase
         .from('classes')
         .update({
