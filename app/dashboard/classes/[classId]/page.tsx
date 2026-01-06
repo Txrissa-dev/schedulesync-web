@@ -72,7 +72,9 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
   const [centres, setCentres] = useState<CentreOption[]>([])
   const [availableSubjects, setAvailableSubjects] = useState<string[]>([])
   const [newLessonDates, setNewLessonDates] = useState<string[]>([''])
-  const [coTeacherAssignments, setCoTeacherAssignments] = useState([{ date: '', teacher_id: '' }])
+    const [coTeacherAssignments, setCoTeacherAssignments] = useState<Array<{ date: string; teacher_id: string }>>([
+    { date: '', teacher_id: '' }
+  ])
   const [editForm, setEditForm] = useState({
     name: '',
     subject: '',
@@ -276,7 +278,7 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
         : desiredTotalLessons
       : fallbackTotalLessons
 
-        if (completedLessonsOverLimit.length > 0) {
+    if (completedLessonsOverLimit.length > 0) {
       alert('Total lessons cannot be less than completed lessons.')
       return
     }
@@ -314,7 +316,7 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
       if (cleanedLessonDates.length > 0) {
         const coTeacherByDate = new Map(
           cleanedCoTeacherAssignments.map((assignment) => [assignment.date, assignment.teacher_id])
-        )  
+        )
         const newLessons = cleanedLessonDates.map((date, index) => ({
           class_id: classDetails.id,
           lesson_number: nextLessonNumber + index,
@@ -344,6 +346,7 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
         const updateError = updates.find((result) => result.error)?.error
         if (updateError) throw updateError
       }
+
       await fetchClassData()
       setShowEditModal(false)
       setNewLessonDates([''])
@@ -537,7 +540,7 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
                       <p className="text-sm text-gray-500">
                         Co-teacher: {getTeacherName(lesson.co_teacher)}
                       </p>
-                    )}            
+                    )}          
                   </div>
 
                   {/* Status Badge */}
@@ -838,7 +841,6 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
                   New dates will be added to the schedule in the next available lesson slots.
                 </p>
               </div>
-            </div>
 
               <div className="border-t border-gray-200 pt-4">
                 <div className="flex items-center justify-between mb-3">
@@ -906,6 +908,7 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
                 </p>
               </div>
             </div>
+            
             <div className="mt-6 flex items-center justify-end gap-3">
               <button
                 onClick={() => setShowEditModal(false)}
