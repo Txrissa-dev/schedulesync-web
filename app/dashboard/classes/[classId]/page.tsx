@@ -29,6 +29,8 @@ interface LessonStatus {
   status: 'scheduled' | 'completed' | 'cancelled' | 'rescheduled'
   attendance_record_id: string | null
   notes: string | null
+  co_teacher_id?: string | null
+  co_teacher?: { name?: string | null; full_name?: string | null } | { name?: string | null; full_name?: string | null }[] | null
 }
 
 interface TeacherOption {
@@ -50,6 +52,13 @@ const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'Ju
 const getTeacherLabel = (teacher: ClassDetails['teacher']) =>
   teacher?.full_name || teacher?.name || 'No teacher assigned'
 
+const getTeacherName = (
+  teacher?: { full_name?: string | null; name?: string | null } | { full_name?: string | null; name?: string | null }[] | null
+) => {
+  const normalized = Array.isArray(teacher) ? teacher[0] : teacher
+  return normalized?.full_name || normalized?.name || 'No teacher assigned'
+}
+
 export default function ClassDetailsPage({ params }: { params: { classId: string } }) {
   const router = useRouter()
   const [classDetails, setClassDetails] = useState<ClassDetails | null>(null)
@@ -63,6 +72,7 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
   const [centres, setCentres] = useState<CentreOption[]>([])
   const [availableSubjects, setAvailableSubjects] = useState<string[]>([])
   const [newLessonDates, setNewLessonDates] = useState<string[]>([''])
+  const [coTeacherAssignments, setCoTeacherAssignments] = useState([{ date: '', teacher_id: '' }])
   const [editForm, setEditForm] = useState({
     name: '',
     subject: '',
@@ -113,7 +123,7 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
       // Fetch lesson statuses
       const { data: lessonsData } = await supabase
         .from('lesson_statuses')
-        .select('*')
+        .select('*, co_teacher:co_teacher_id (full_name, name)')
         .eq('class_id', params.classId)
         .order('lesson_number', { ascending: true })
 
@@ -141,6 +151,7 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
       total_lessons: classDetails.total_lessons?.toString() || ''
     })
     setNewLessonDates([''])
+    setCoTeacherAssignments([{ date: '', teacher_id: '' }])
   }, [classDetails])
 
   useEffect(() => {
@@ -243,12 +254,15 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
     const cleanedLessonDates = newLessonDates
       .map(date => date.trim())
       .filter(Boolean)
+    const cleanedCoTeacherAssignments = coTeacherAssignments
+      .map((assignment) => ({ date: assignment.date.trim(), teacher_id: assignment.teacher_id }))
+      .filter((assignment) => assignment.date && assignment.teacher_id)
 
     const existingLessonsCount = lessons.length
     const nextLessonNumber = lessons.reduce((max, lesson) => Math.max(max, lesson.lesson_number), 0) + 1
     const desiredTotalLessons = editForm.total_lessons ? parseInt(editForm.total_lessons) : null
     const minTotalLessons = existingLessonsCount + cleanedLessonDates.length
-        const isReducingLessons = desiredTotalLessons !== null
+    const isReducingLessons = desiredTotalLessons !== null
       && cleanedLessonDates.length === 0
       && desiredTotalLessons < existingLessonsCount
     const completedLessonsOverLimit = isReducingLessons
@@ -298,12 +312,16 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
       if (updateError) throw updateError
 
       if (cleanedLessonDates.length > 0) {
+        const coTeacherByDate = new Map(
+          cleanedCoTeacherAssignments.map((assignment) => [assignment.date, assignment.teacher_id])
+        )  
         const newLessons = cleanedLessonDates.map((date, index) => ({
           class_id: classDetails.id,
           lesson_number: nextLessonNumber + index,
           scheduled_date: date,
           status: 'scheduled',
-          notes: null
+          notes: null,
+          co_teacher_id: coTeacherByDate.get(date) || null
         }))
 
         const { error: lessonError } = await supabase
@@ -313,9 +331,23 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
         if (lessonError) throw lessonError
       }
 
+      if (cleanedCoTeacherAssignments.length > 0) {
+        const updates = await Promise.all(
+          cleanedCoTeacherAssignments.map((assignment) =>
+            supabase
+              .from('lesson_statuses')
+              .update({ co_teacher_id: assignment.teacher_id })
+              .eq('class_id', classDetails.id)
+              .eq('scheduled_date', assignment.date)
+          )
+        )
+        const updateError = updates.find((result) => result.error)?.error
+        if (updateError) throw updateError
+      }
       await fetchClassData()
       setShowEditModal(false)
       setNewLessonDates([''])
+      setCoTeacherAssignments([{ date: '', teacher_id: '' }])
     } catch (error: any) {
       console.error('Error updating class:', error)
       const message = error?.message ? `Failed to update class details: ${error.message}` : 'Failed to update class details'
@@ -337,7 +369,18 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
   const totalLessons = classDetails.total_lessons || lessons.length
   const remainingCount = totalLessons - completedCount
   const progressPercent = totalLessons > 0 ? (completedCount / totalLessons) * 100 : 0
-
+  const primaryTeacherName = getTeacherLabel(classDetails.teacher)
+  const coTeacherNames = Array.from(
+    new Set(
+      lessons
+        .map((lesson) => getTeacherName(lesson.co_teacher))
+        .filter((name) => name !== 'No teacher assigned' && name !== primaryTeacherName)
+    )
+  )
+  const teacherNames = coTeacherNames.length > 0
+    ? `${primaryTeacherName} • ${coTeacherNames.join(', ')}`
+    : primaryTeacherName
+  
   return (
     <div className="px-4 py-6 sm:px-0 space-y-6">
       {/* Header */}
@@ -392,7 +435,7 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A9 9 0 1119 9a4 4 0 00-7.293 7.293M15 21H9a4 4 0 010-8h6a4 4 0 010 8z" />
               </svg>
             </div>
-            <span className="font-medium">{getTeacherLabel(classDetails.teacher)}</span>
+            <span className="font-medium">{teacherNames}</span>
           </div>
           
           <div className="flex items-center gap-3 text-gray-700">
@@ -490,6 +533,11 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
                   <div className="flex-1">
                     <h4 className="font-semibold text-gray-900">Lesson {lesson.lesson_number}</h4>
                     <p className="text-sm text-gray-600">{formattedDate}</p>
+                    {lesson.co_teacher && (
+                      <p className="text-sm text-gray-500">
+                        Co-teacher: {getTeacherName(lesson.co_teacher)}
+                      </p>
+                    )}            
                   </div>
 
                   {/* Status Badge */}
@@ -535,7 +583,11 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
                 day: 'numeric'
               })}
             </p>
-
+            <p className="text-center text-sm text-gray-500 mb-4">
+              Teacher: {primaryTeacherName}
+              {selectedLesson.co_teacher ? ` • Co-teacher: ${getTeacherName(selectedLesson.co_teacher)}` : ''}
+            </p>
+            
             <div className="space-y-3">
               {/* Mark as Completed */}
               <button
@@ -788,6 +840,72 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
               </div>
             </div>
 
+              <div className="border-t border-gray-200 pt-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-sm font-semibold text-gray-700">Assign Co-teachers</h4>
+                  <button
+                    type="button"
+                    onClick={() => setCoTeacherAssignments((prev) => [...prev, { date: '', teacher_id: '' }])}
+                    className="text-sm text-brand-primary font-medium hover:text-brand-primary-dark"
+                  >
+                    + Add co-teacher
+                  </button>
+                </div>
+
+                <div className="space-y-2">
+                  {coTeacherAssignments.map((assignment, index) => (
+                    <div key={`${assignment.date}-${index}`} className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      <input
+                        type="date"
+                        value={assignment.date}
+                        onChange={(e) => {
+                          const updated = [...coTeacherAssignments]
+                          updated[index] = { ...updated[index], date: e.target.value }
+                          setCoTeacherAssignments(updated)
+                        }}
+                        className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+                      />
+                      <select
+                        value={assignment.teacher_id}
+                        onChange={(e) => {
+                          const updated = [...coTeacherAssignments]
+                          updated[index] = { ...updated[index], teacher_id: e.target.value }
+                          setCoTeacherAssignments(updated)
+                        }}
+                        className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+                      >
+                        <option value="">Select co-teacher</option>
+                        {teachers
+                          .filter((teacher) => teacher.id !== editForm.teacher_id)
+                          .map((teacher) => {
+                            const teacherLabel = teacher.full_name || teacher.name || teacher.email || 'Unnamed teacher'
+                            const showEmail = teacher.email && teacherLabel !== teacher.email
+                            return (
+                              <option key={teacher.id} value={teacher.id}>
+                                {teacherLabel} {showEmail ? `(${teacher.email})` : ''}
+                              </option>
+                            )
+                          })}
+                      </select>
+                      {coTeacherAssignments.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setCoTeacherAssignments((prev) => prev.filter((_, idx) => idx !== index))
+                          }
+                          className="md:col-span-2 text-left text-sm text-gray-500 hover:text-red-600"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-2 text-xs text-gray-500">
+                  Select lesson dates to add or update co-teachers.
+                </p>
+              </div>
+            </div>
             <div className="mt-6 flex items-center justify-end gap-3">
               <button
                 onClick={() => setShowEditModal(false)}
