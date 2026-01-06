@@ -114,7 +114,7 @@ export default function DashboardPage() {
 
         const { data: todayLessons } = await supabase
           .from('lesson_statuses')
-          .select('class_id')
+          .select('class_id, co_teacher_id')
           .eq('scheduled_date', todayKey)
 
         const todayClassIds = todayLessons?.map((lesson) => lesson.class_id) ?? []
@@ -122,7 +122,15 @@ export default function DashboardPage() {
         if (todayClassIds.length > 0) {
           // If user is a teacher, fetch today's classes
           if (profile.teacher_id) {
-            const { data: classes } = await supabase
+            const coTeacherClassIds = Array.from(
+              new Set(
+                todayLessons
+                  ?.filter((lesson) => lesson.co_teacher_id === profile.teacher_id)
+                  .map((lesson) => lesson.class_id) ?? []
+              )
+            )
+
+            const primaryClassesPromise = supabase
               .from('classes')
               .select(`
                 id,
@@ -139,20 +147,44 @@ export default function DashboardPage() {
               .in('id', todayClassIds)
               .order('start_time')
 
-            if (classes) {
-              const formattedClasses = classes.map((c: any) => ({
-                id: c.id,
-                name: c.name,
-                subject: c.subject,
-                start_time: c.start_time,
-                end_time: c.end_time,
-                room: c.room,
-                centre_name: c.centres?.name || 'Unknown',
-                teacher_name: getTeacherLabel(c.teachers),
-                student_count: c.class_students?.length || 0
-              }))
-              setTodayClasses(formattedClasses)
-            }
+            const coTeacherClassesPromise = coTeacherClassIds.length > 0
+              ? supabase
+                  .from('classes')
+                  .select(`
+                    id,
+                    name,
+                    subject,
+                    start_time,
+                    end_time,
+                    room,
+                    centres:centre_id (name),
+                    teachers:teacher_id (full_name, name),
+                    class_students (student_id)
+                  `)
+                  .in('id', coTeacherClassIds)
+                  .order('start_time')
+              : Promise.resolve({ data: [] as any[] })
+
+            const [{ data: primaryClasses }, { data: coTeacherClasses }] = await Promise.all([
+              primaryClassesPromise,
+              coTeacherClassesPromise
+            ])
+
+            const combinedClasses = [...(primaryClasses || []), ...(coTeacherClasses || [])]
+            const uniqueClasses = new Map(combinedClasses.map((c: any) => [c.id, c]))
+
+            const formattedClasses = Array.from(uniqueClasses.values()).map((c: any) => ({
+              id: c.id,
+              name: c.name,
+              subject: c.subject,
+              start_time: c.start_time,
+              end_time: c.end_time,
+              room: c.room,
+              centre_name: c.centres?.name || 'Unknown',
+              teacher_name: getTeacherLabel(c.teachers),
+              student_count: c.class_students?.length || 0
+            }))
+            setTodayClasses(formattedClasses)
           }
           
          // Fetch all classes for today (for admin view)
