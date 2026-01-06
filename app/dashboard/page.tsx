@@ -40,6 +40,16 @@ interface Announcement {
   author_name: string
 }
 
+const getTeacherLabel = (teacher: { full_name?: string | null; name?: string | null } | null) =>
+  teacher?.full_name || teacher?.name || 'No teacher assigned'
+
+const formatDateKey = (date: Date) => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 export default function DashboardPage() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [stats, setStats] = useState<DashboardStats>({ centres: 0, students: 0, teachers: 0, classes: 0 })
@@ -99,12 +109,54 @@ export default function DashboardPage() {
           classes: classesRes.count || 0
         })
 
-        // If user is a teacher, fetch today's classes
-        if (profile.teacher_id) {
-          const today = new Date()
-          const dayOfWeek = today.getDay() // 0 = Sunday, 1 = Monday, etc.
+               const today = new Date()
+        const todayKey = formatDateKey(today)
 
-          const { data: classes } = await supabase
+        const { data: todayLessons } = await supabase
+          .from('lesson_statuses')
+          .select('class_id')
+          .eq('scheduled_date', todayKey)
+
+        const todayClassIds = todayLessons?.map((lesson) => lesson.class_id) ?? []
+
+        if (todayClassIds.length > 0) {
+          // If user is a teacher, fetch today's classes
+          if (profile.teacher_id) {
+            const { data: classes } = await supabase
+              .from('classes')
+              .select(`
+                id,
+                name,
+                subject,
+                start_time,
+                end_time,
+                room,
+                centres:centre_id (name),
+                teachers:teacher_id (full_name, name),
+                class_students (student_id)
+              `)
+              .eq('teacher_id', profile.teacher_id)
+              .in('id', todayClassIds)
+              .order('start_time')
+
+            if (classes) {
+              const formattedClasses = classes.map((c: any) => ({
+                id: c.id,
+                name: c.name,
+                subject: c.subject,
+                start_time: c.start_time,
+                end_time: c.end_time,
+                room: c.room,
+                centre_name: c.centres?.name || 'Unknown',
+                teacher_name: getTeacherLabel(c.teachers),
+                student_count: c.class_students?.length || 0
+              }))
+              setTodayClasses(formattedClasses)
+            }
+          }
+
+          // Fetch all classes for today (for admin view)
+          const { data: allClasses } = await supabase
             .from('classes')
             .select(`
               id,
@@ -114,14 +166,15 @@ export default function DashboardPage() {
               end_time,
               room,
               centres:centre_id (name),
-              teachers:teacher_id (full_name),
+              teachers:teacher_id (full_name, name),
               class_students (student_id)
             `)
-            .eq('teacher_id', profile.teacher_id)
-            .eq('day_of_week', dayOfWeek)
+            .eq('organisation_id', profile.organisation_id)
+            .in('id', todayClassIds)
+            .order('start_time')
 
-          if (classes) {
-            const formattedClasses = classes.map((c: any) => ({
+          if (allClasses) {
+            const formattedAllClasses = allClasses.map((c: any) => ({
               id: c.id,
               name: c.name,
               subject: c.subject,
@@ -129,47 +182,14 @@ export default function DashboardPage() {
               end_time: c.end_time,
               room: c.room,
               centre_name: c.centres?.name || 'Unknown',
-              teacher_name: c.teachers?.full_name || 'Unknown',
+              teacher_name: getTeacherLabel(c.teachers),
               student_count: c.class_students?.length || 0
             }))
-            setTodayClasses(formattedClasses)
+            setAllClassesToday(formattedAllClasses)
           }
-        }
-
-        // Fetch all classes for today (for admin view)
-        const today = new Date()
-        const dayOfWeek = today.getDay()
-
-        const { data: allClasses } = await supabase
-          .from('classes')
-          .select(`
-            id,
-            name,
-            subject,
-            start_time,
-            end_time,
-            room,
-            centres:centre_id (name),
-            teachers:teacher_id (full_name),
-            class_students (student_id)
-          `)
-          .eq('organisation_id', profile.organisation_id)
-          .eq('day_of_week', dayOfWeek)
-          .order('start_time')
-
-        if (allClasses) {
-          const formattedAllClasses = allClasses.map((c: any) => ({
-            id: c.id,
-            name: c.name,
-            subject: c.subject,
-            start_time: c.start_time,
-            end_time: c.end_time,
-            room: c.room,
-            centre_name: c.centres?.name || 'Unknown',
-            teacher_name: c.teachers?.full_name || 'Unknown',
-            student_count: c.class_students?.length || 0
-          }))
-          setAllClassesToday(formattedAllClasses)
+        } else {
+          setTodayClasses([])
+          setAllClassesToday([])
         }
 
         // Fetch announcements
@@ -350,7 +370,7 @@ export default function DashboardPage() {
                   <div>
                     <h4 className="font-semibold text-gray-900">{cls.name}</h4>
                     <p className="text-sm text-gray-600">
-                      {cls.subject} • {cls.start_time} - {cls.end_time}
+                      {cls.subject} • {cls.start_time} - {cls.end_time} • {cls.teacher_name}
                     </p>
                     <p className="text-sm text-gray-500">
                       {cls.centre_name} {cls.room && `• Room ${cls.room}`} • {cls.student_count} students
