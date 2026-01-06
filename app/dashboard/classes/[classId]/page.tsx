@@ -46,6 +46,11 @@ interface CentreOption {
   name: string
 }
 
+type CoTeacherAssignment = {
+  date: string
+  teacher_id: string
+}
+
 const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
@@ -72,7 +77,7 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
   const [centres, setCentres] = useState<CentreOption[]>([])
   const [availableSubjects, setAvailableSubjects] = useState<string[]>([])
   const [newLessonDates, setNewLessonDates] = useState<string[]>([''])
-    const [coTeacherAssignments, setCoTeacherAssignments] = useState<Array<{ date: string; teacher_id: string }>>([
+  const [coTeacherAssignments, setCoTeacherAssignments] = useState<CoTeacherAssignment[]>([
     { date: '', teacher_id: '' }
   ])
   const [editForm, setEditForm] = useState({
@@ -540,7 +545,7 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
                       <p className="text-sm text-gray-500">
                         Co-teacher: {getTeacherName(lesson.co_teacher)}
                       </p>
-                    )}          
+                    )}        
                   </div>
 
                   {/* Status Badge */}
