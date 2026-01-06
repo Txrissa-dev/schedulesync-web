@@ -23,8 +23,8 @@ const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const DAYS_FULL = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
-const getTeacherLabel = (teacher: { full_name?: string | null; name?: string | null; email?: string | null } | null) =>
-  teacher?.full_name || teacher?.name || teacher?.email || 'No teacher assigned'
+const getTeacherLabel = (teacher: { full_name?: string | null; name?: string | null } | null) =>
+  teacher?.full_name || teacher?.name || 'No teacher assigned'
 
 export default function SchedulesPage() {
   const [classes, setClasses] = useState<ClassSchedule[]>([])
@@ -68,7 +68,7 @@ export default function SchedulesPage() {
             room,
             total_lessons,
             centres:centre_id (name),
-            teachers:teacher_id (full_name, name, email),
+            teachers:teacher_id (full_name, name),
             class_students (student_id)
           `)
           .eq('organisation_id', profile.organisation_id)
@@ -211,13 +211,15 @@ export default function SchedulesPage() {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))
   }
 
-  if (loading) {
-    return <div className="text-center py-12">Loading schedules...</div>
-  }
-
   const isAdmin = userProfile?.has_admin_access || userProfile?.is_super_admin
   const calendarDays = getDaysInMonth(currentDate)
   const selectedDateClasses = selectedDate ? getClassesForDate(selectedDate) : []
+
+    if (loading) {
+    return (
+      <div className="text-center py-12">Loading schedules...</div>
+    )
+  }
 
   return (
     <div className="px-4 py-6 sm:px-0">
@@ -345,12 +347,7 @@ export default function SchedulesPage() {
                         <p className="text-sm text-brand-secondary">
                           Teacher: {cls.teacher_name}
                         </p>
-                      </div>
-                        <span className="text-sm text-gray-500">•</span>
-                        <p className="text-sm text-brand-secondary">
-                          Teacher: {cls.teacher_name}
-                        </p>
-                      </div>                    
+                      </div>  
                       <p className="text-sm text-gray-600 mb-2">{cls.subject}</p>
 
                       <div className="flex items-center gap-4 text-xs text-gray-500">
