@@ -14,6 +14,7 @@ interface ClassSchedule {
   room: string | null
   centre_name: string
   teacher_name: string
+  teacher_id: string | null
   student_count: number
   completed_lessons: number
   total_lessons: number | null
@@ -55,30 +56,62 @@ export default function SchedulesPage() {
 
         if (!profile?.organisation_id) return
 
-        // Build query based on user role
-        let query = supabase
-          .from('classes')
-          .select(`
-            id,
-            name,
-            subject,
-            day_of_week,
-            start_time,
-            end_time,
-            room,
-            total_lessons,
-            centres:centre_id (name),
-            teachers:teacher_id (full_name, name),
-            class_students (student_id)
-          `)
-          .eq('organisation_id', profile.organisation_id)
+        const classSelect = `
+          id,
+          name,
+          subject,
+          day_of_week,
+          start_time,
+          end_time,
+          room,
+          total_lessons,
+          teacher_id,
+          centres:centre_id (name),
+          teachers:teacher_id (full_name, name),
+          class_students (student_id)
+        `
 
-        // If teacher, only show their classes
+        const baseClassesQuery = () =>
+          supabase
+            .from('classes')
+            .select(classSelect)
+            .eq('organisation_id', profile.organisation_id)
+
+        let classesData: any[] | null = null
+
         if (profile.teacher_id && !profile.has_admin_access) {
-          query = query.eq('teacher_id', profile.teacher_id)
-        }
+          const { data: primaryClasses } = await baseClassesQuery()
+            .eq('teacher_id', profile.teacher_id)
+            .order('start_time')
 
-        const { data: classesData } = await query.order('start_time')
+          const { data: coTeacherLessons } = await supabase
+            .from('lesson_statuses')
+            .select('class_id')
+            .eq('co_teacher_id', profile.teacher_id)
+
+          const coTeacherClassIds = Array.from(
+            new Set(coTeacherLessons?.map((lesson) => lesson.class_id) ?? [])
+          )
+
+          let coTeacherClasses: any[] = []
+
+          if (coTeacherClassIds.length > 0) {
+            const { data: coClasses } = await baseClassesQuery()
+              .in('id', coTeacherClassIds)
+              .order('start_time')
+
+            if (coClasses) {
+              coTeacherClasses = coClasses
+            }
+          }
+
+          const combinedClasses = [...(primaryClasses || []), ...coTeacherClasses]
+          const uniqueClasses = new Map(combinedClasses.map((cls) => [cls.id, cls]))
+          classesData = Array.from(uniqueClasses.values())
+        } else {
+          const { data } = await baseClassesQuery().order('start_time')
+          classesData = data
+        }
 
         if (classesData) {
           // Fetch lesson progress for each class
@@ -101,6 +134,7 @@ export default function SchedulesPage() {
                 room: c.room,
                 centre_name: c.centres?.name || 'Unknown',
                 teacher_name: getTeacherLabel(c.teachers),
+                teacher_id: c.teacher_id,
                 student_count: c.class_students?.length || 0,
                 completed_lessons: completedLessons,
                 total_lessons: c.total_lessons
@@ -130,25 +164,59 @@ export default function SchedulesPage() {
         const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
         const monthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
         const classIds = classes.map((cls) => cls.id)
+        const primaryClassIds = userProfile?.teacher_id
+          ? classes
+              .filter((cls) => cls.teacher_id === userProfile.teacher_id)
+              .map((cls) => cls.id)
+          : classIds
 
-        const { data: lessons, error } = await supabase
-          .from('lesson_statuses')
-          .select('class_id, scheduled_date')
-          .in('class_id', classIds)
-          .gte('scheduled_date', getDateKey(monthStart))
-          .lte('scheduled_date', getDateKey(monthEnd))
+        const lessonQueries = []
 
-        if (error) {
-          console.error('Error fetching lesson dates:', error)
+        if (!userProfile?.teacher_id || userProfile?.has_admin_access || userProfile?.is_super_admin) {
+          lessonQueries.push(
+            supabase
+              .from('lesson_statuses')
+              .select('class_id, scheduled_date')
+              .in('class_id', classIds)
+              .gte('scheduled_date', getDateKey(monthStart))
+              .lte('scheduled_date', getDateKey(monthEnd))
+          )
+        } else {
+          if (primaryClassIds.length > 0) {
+            lessonQueries.push(
+              supabase
+                .from('lesson_statuses')
+                .select('class_id, scheduled_date')
+                .in('class_id', primaryClassIds)
+                .gte('scheduled_date', getDateKey(monthStart))
+                .lte('scheduled_date', getDateKey(monthEnd))
+            )
+          }
+          lessonQueries.push(
+            supabase
+              .from('lesson_statuses')
+              .select('class_id, scheduled_date')
+              .eq('co_teacher_id', userProfile.teacher_id)
+              .gte('scheduled_date', getDateKey(monthStart))
+              .lte('scheduled_date', getDateKey(monthEnd))
+          )
+        }
+        
+        const results = await Promise.all(lessonQueries)
+        const errors = results.find((result) => result.error)
+        if (errors?.error) {
+          console.error('Error fetching lesson dates:', errors.error)
           return
         }
 
         const groupedLessons: Record<string, string[]> = {}
-        lessons?.forEach((lesson) => {
-          if (!groupedLessons[lesson.scheduled_date]) {
-            groupedLessons[lesson.scheduled_date] = []
-          }
-          groupedLessons[lesson.scheduled_date].push(lesson.class_id)
+        results.forEach((result) => {
+          result.data?.forEach((lesson: any) => {
+            if (!groupedLessons[lesson.scheduled_date]) {
+              groupedLessons[lesson.scheduled_date] = []
+            }
+            groupedLessons[lesson.scheduled_date].push(lesson.class_id)
+          })
         })
 
         setLessonsByDate(groupedLessons)
@@ -158,7 +226,7 @@ export default function SchedulesPage() {
     }
 
     fetchLessonDates()
-  }, [classes, currentDate])
+  }, [classes, currentDate, userProfile])
   
   // Generate calendar days for current month
   const getDaysInMonth = (date: Date) => {
