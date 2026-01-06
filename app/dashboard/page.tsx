@@ -154,8 +154,8 @@ export default function DashboardPage() {
               setTodayClasses(formattedClasses)
             }
           }
-
-          // Fetch all classes for today (for admin view)
+          
+         // Fetch all classes for today (for admin view)
           const { data: allClasses } = await supabase
             .from('classes')
             .select(`
