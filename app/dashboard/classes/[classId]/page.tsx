@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -72,6 +72,7 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
   const [selectedLesson, setSelectedLesson] = useState<LessonStatus | null>(null)
   const [showLessonModal, setShowLessonModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
+  const [editModalFocus, setEditModalFocus] = useState<'coTeacher' | null>(null)
   const [savingEdits, setSavingEdits] = useState(false)
   const [teachers, setTeachers] = useState<TeacherOption[]>([])
   const [centres, setCentres] = useState<CentreOption[]>([])
@@ -80,6 +81,7 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
   const [coTeacherAssignments, setCoTeacherAssignments] = useState<CoTeacherAssignment[]>([
     { date: '', teacher_id: '' }
   ])
+  const coTeacherSectionRef = useRef<HTMLDivElement | null>(null)
   const [editForm, setEditForm] = useState({
     name: '',
     subject: '',
@@ -95,6 +97,14 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
   useEffect(() => {
     fetchClassData()
   }, [params.classId])
+
+    useEffect(() => {
+    if (showEditModal && editModalFocus === 'coTeacher') {
+      requestAnimationFrame(() => {
+        coTeacherSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      })
+    }
+  }, [showEditModal, editModalFocus])
 
   const fetchClassData = async () => {
     try {
@@ -354,6 +364,7 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
 
       await fetchClassData()
       setShowEditModal(false)
+      setEditModalFocus(null)
       setNewLessonDates([''])
       setCoTeacherAssignments([{ date: '', teacher_id: '' }])
     } catch (error: any) {
@@ -405,7 +416,10 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
         </button>
         <h2 className="text-lg font-semibold text-brand-primary">Class Details</h2>
         <button
-          onClick={() => setShowEditModal(true)}
+          onClick={() => {
+            setEditModalFocus(null)
+            setShowEditModal(true)
+          }}
           className="p-2 text-brand-secondary hover:text-brand-secondary-dark"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -458,7 +472,10 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
             </div>
             <button
               type="button"
-              onClick={() => setShowEditModal(true)}
+              onClick={() => {
+                setEditModalFocus('coTeacher')
+                setShowEditModal(true)
+              }}
               className="text-sm text-brand-primary font-medium hover:text-brand-primary-dark"
             >
               {coTeacherNames.length > 0 ? 'Edit co-teachers' : 'Add co-teacher'}
@@ -686,7 +703,10 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-semibold text-gray-900">Edit Class Details</h3>
               <button
-                onClick={() => setShowEditModal(false)}
+                onClick={() => {
+                  setShowEditModal(false)
+                  setEditModalFocus(null)
+                }}
                 className="text-gray-400 hover:text-gray-600"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -866,7 +886,7 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
                 </p>
               </div>
 
-              <div className="border-t border-gray-200 pt-4">
+              <div className="border-t border-gray-200 pt-4" ref={coTeacherSectionRef}>
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="text-sm font-semibold text-gray-700">Assign Co-teachers</h4>
                   <button
@@ -935,7 +955,10 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
             
             <div className="mt-6 flex items-center justify-end gap-3">
               <button
-                onClick={() => setShowEditModal(false)}
+                onClick={() => {
+                  setShowEditModal(false)
+                  setEditModalFocus(null)
+                }}
                 className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium"
                 disabled={savingEdits}
               >
