@@ -109,7 +109,7 @@ export default function DashboardPage() {
           classes: classesRes.count || 0
         })
 
-               const today = new Date()
+        const today = new Date()
         const todayKey = formatDateKey(today)
 
         const { data: todayLessons } = await supabase
@@ -166,7 +166,7 @@ export default function DashboardPage() {
               end_time,
               room,
               centres:centre_id (name),
-              teachers:teacher_id (full_name, name),
+                teachers:teacher_id (full_name, name),
               class_students (student_id)
             `)
             .eq('organisation_id', profile.organisation_id)
