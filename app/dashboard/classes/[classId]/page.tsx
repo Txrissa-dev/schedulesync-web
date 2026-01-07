@@ -255,6 +255,26 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
     }
   }
 
+  const handleMarkUpcoming = async () => {
+    if (!selectedLesson) return
+
+    try {
+      const { error } = await supabase
+        .from('lesson_statuses')
+        .update({ status: 'scheduled' })
+        .eq('id', selectedLesson.id)
+
+      if (error) throw error
+
+      await fetchClassData()
+      setShowLessonModal(false)
+      setSelectedLesson(null)
+    } catch (error) {
+      console.error('Error marking lesson as upcoming:', error)
+      alert('Failed to update lesson status')
+    }
+  }
+
   const handleMarkAttendance = () => {
     if (!selectedLesson) return
     router.push(`/dashboard/classes/${params.classId}/attendance/${selectedLesson.id}`)
@@ -662,6 +682,22 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
                 <div>
                   <p className="font-semibold text-brand-primary text-lg">Mark as Rescheduled</p>
                   <p className="text-sm text-gray-600">Lesson will be conducted on another date</p>
+                </div>
+              </button>
+
+              {/* Mark as Upcoming */}
+              <button
+                onClick={handleMarkUpcoming}
+                className="w-full flex items-center gap-4 p-4 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors text-left"
+              >
+                <div className="w-12 h-12 bg-gray-400 rounded-full flex items-center justify-center flex-shrink-0">
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-700 text-lg">Mark as Upcoming</p>
+                  <p className="text-sm text-gray-600">Move lesson back to upcoming status</p>
                 </div>
               </button>
 
