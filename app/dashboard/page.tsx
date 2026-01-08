@@ -530,12 +530,6 @@ export default function DashboardPage() {
                       </span>
                     </div>
                   </div>
-                  <Link
-                    href={`/dashboard/attendance/${cls.id}`}
-                    className="ml-4 px-4 py-2 bg-brand-success text-white rounded-lg hover:bg-green-700 text-sm inline-block transition-colors font-medium"
-                  >
-                    Attendance
-                  </Link>
                 </div>
               </div>
             ))}
