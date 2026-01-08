@@ -21,6 +21,7 @@ interface Class {
   } | null
   student_count: number
   total_lessons: number | null
+  effective_total_lessons: number
   completed_lessons: number
 }
 
@@ -140,7 +141,9 @@ export default function ClassesPage() {
                 .eq('class_id', c.id)
 
               const completedLessons = lessons?.filter((l: any) => l.status === 'completed').length || 0
-
+              const rescheduledLessons = lessons?.filter((l: any) => l.status === 'rescheduled').length || 0
+              const effectiveTotalLessons = Math.max((c.total_lessons || 0) - rescheduledLessons, 0)
+              
               return {
                 id: c.id,
                 name: c.name,
@@ -150,6 +153,7 @@ export default function ClassesPage() {
                 end_time: c.end_time,
                 room: c.room,
                 total_lessons: c.total_lessons,
+                effective_total_lessons: effectiveTotalLessons,
                 teacher: c.teachers,
                 centre: c.centres,
                 student_count: c.class_students?.length || 0,
@@ -390,8 +394,8 @@ export default function ClassesPage() {
               </h3>
               <div className="space-y-3">
                 {subjectClasses.map((cls) => {
-                  const progress = cls.total_lessons
-                    ? (cls.completed_lessons / cls.total_lessons) * 100
+                  const progress = cls.effective_total_lessons
+                    ? (cls.completed_lessons / cls.effective_total_lessons) * 100
                     : 0
 
                   return (
@@ -433,12 +437,12 @@ export default function ClassesPage() {
                         </div>
 
                         {/* Lesson Progress */}
-                        {cls.total_lessons && (
+                        {cls.effective_total_lessons > 0 && (
                           <div className="mb-4">
                             <div className="flex items-center justify-between text-sm mb-1.5">
                               <span className="text-gray-600">Lesson Progress</span>
                               <span className="font-medium text-brand-secondary">
-                                {cls.completed_lessons}/{cls.total_lessons}
+                                {cls.completed_lessons}/{cls.effective_total_lessons}
                               </span>
                             </div>
                             <div className="w-full bg-gray-200 rounded-full h-2">
