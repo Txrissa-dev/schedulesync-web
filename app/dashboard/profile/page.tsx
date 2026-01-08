@@ -66,6 +66,7 @@ interface Organisation {
 }
 
 export default function ProfilePage() {
+  const defaultTeacherPassword = 'password123'
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [organisation, setOrganisation] = useState<Organisation | null>(null)
   const [teachers, setTeachers] = useState<Teacher[]>([])
@@ -89,6 +90,7 @@ export default function ProfilePage() {
   })
   const [teacherCentres, setTeacherCentres] = useState<string[]>([])
   const [savingTeacher, setSavingTeacher] = useState(false)
+  const [resettingPassword, setResettingPassword] = useState(false)
   const [selectedTeacherNotes, setSelectedTeacherNotes] = useState<TeacherNote[]>([])
   const [adminNoteForm, setAdminNoteForm] = useState({
     title: '',
@@ -336,6 +338,42 @@ export default function ProfilePage() {
       alert('Failed to update teacher')
     } finally {
       setSavingTeacher(false)
+    }
+  }
+
+  const handleResetTeacherPassword = async () => {
+    if (!selectedTeacher) return
+
+    const confirmed = window.confirm(
+      `Reset password for ${selectedTeacher.full_name || selectedTeacher.email || 'this teacher'}? ` +
+      `The new default password will be "${defaultTeacherPassword}".`
+    )
+
+    if (!confirmed) return
+
+    setResettingPassword(true)
+    try {
+      const response = await supabase.functions.invoke('reset-teacher-password', {
+        body: {
+          teacher_id: selectedTeacher.id,
+          password: defaultTeacherPassword
+        }
+      })
+
+      if (response.error) {
+        throw response.error
+      }
+
+      if (response.data?.error) {
+        throw new Error(response.data.error)
+      }
+
+      alert('Teacher password reset to the default password.')
+    } catch (error: any) {
+      console.error('Error resetting teacher password:', error)
+      alert(error.message || 'Failed to reset teacher password')
+    } finally {
+      setResettingPassword(false)
     }
   }
 
@@ -869,6 +907,27 @@ export default function ProfilePage() {
                       className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
                       placeholder="Enter phone"
                     />
+                  </div>
+
+                  {/* Reset Password */}
+                  <div className="pt-4 border-t border-gray-200">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Reset Password</label>
+                    <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-3 text-sm text-gray-700">
+                      <p className="font-medium text-gray-900">Default password: {defaultTeacherPassword}</p>
+                      <p className="mt-1 text-xs text-gray-600">
+                        Use this if the teacher forgot their password. They can change it after logging in.
+                      </p>
+                      <div className="mt-3">
+                        <button
+                          type="button"
+                          onClick={handleResetTeacherPassword}
+                          disabled={resettingPassword}
+                          className="px-3 py-2 text-sm font-medium text-yellow-900 bg-yellow-200 rounded-lg hover:bg-yellow-300 transition-colors disabled:opacity-50"
+                        >
+                          {resettingPassword ? 'Resetting...' : 'Reset to Default Password'}
+                        </button>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Assign Centres */}
