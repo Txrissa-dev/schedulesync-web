@@ -89,7 +89,13 @@ export default function ProfilePage() {
   })
   const [teacherCentres, setTeacherCentres] = useState<string[]>([])
   const [savingTeacher, setSavingTeacher] = useState(false)
-
+  const [selectedTeacherNotes, setSelectedTeacherNotes] = useState<TeacherNote[]>([])
+  const [adminNoteForm, setAdminNoteForm] = useState({
+    title: '',
+    note: ''
+  })
+  const [savingAdminNote, setSavingAdminNote] = useState(false)
+  
   // Centre management states
   const [selectedCentre, setSelectedCentre] = useState<Centre | null>(null)
   const [showAddCentre, setShowAddCentre] = useState(false)
@@ -344,6 +350,18 @@ export default function ProfilePage() {
     }
   }
 
+    const loadTeacherNotes = async (teacherId: string) => {
+    const { data } = await supabase
+      .from('teacher_notes')
+      .select('id, teacher_id, title, note, created_at')
+      .eq('teacher_id', teacherId)
+      .order('created_at', { ascending: false })
+
+    if (data) {
+      setSelectedTeacherNotes(data)
+    }
+  }
+
   const handleAssignCentre = async (teacherId: string, centreId: string, isAssigned: boolean) => {
     try {
       if (isAssigned) {
@@ -471,7 +489,18 @@ export default function ProfilePage() {
   }
 
   const handleAddNote = async () => {
-    if (!noteForm.title || !noteForm.note || !profile?.teacher_id) return
+    const title = noteForm.title.trim()
+    const note = noteForm.note.trim()
+
+    if (!title || !note) {
+      alert('Please fill in both the title and note fields')
+      return
+    }
+
+    if (!profile?.teacher_id) {
+      alert('Unable to add note: teacher profile is missing')
+      return
+    }
 
     setSavingNote(true)
     try {
@@ -479,8 +508,8 @@ export default function ProfilePage() {
         .from('teacher_notes')
         .insert({
           teacher_id: profile.teacher_id,
-          title: noteForm.title,
-          note: noteForm.note
+          title,
+          note
         })
         .select()
         .single()
@@ -497,6 +526,41 @@ export default function ProfilePage() {
       alert('Failed to add note')
     } finally {
       setSavingNote(false)
+    }
+  }
+
+    const handleAddTeacherNote = async (teacherId: string) => {
+    const title = adminNoteForm.title.trim()
+    const note = adminNoteForm.note.trim()
+
+    if (!title || !note) {
+      alert('Please fill in both the title and note fields')
+      return
+    }
+
+    setSavingAdminNote(true)
+    try {
+      const { data, error } = await supabase
+        .from('teacher_notes')
+        .insert({
+          teacher_id: teacherId,
+          title,
+          note
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+
+      if (data) {
+        setSelectedTeacherNotes([data, ...selectedTeacherNotes])
+        setAdminNoteForm({ title: '', note: '' })
+      }
+    } catch (error) {
+      console.error('Error adding teacher note:', error)
+      alert('Failed to add note')
+    } finally {
+      setSavingAdminNote(false)
     }
   }
 
@@ -612,6 +676,8 @@ export default function ProfilePage() {
                           has_admin_access: false
                         })
                         loadTeacherCentres(teacher.id)
+                        loadTeacherNotes(teacher.id)
+                        setAdminNoteForm({ title: '', note: '' })
                         setShowEditTeacher(true)
                       }}
                       className="ml-4 px-4 py-2 text-sm font-medium text-brand-primary border-2 border-brand-primary rounded-lg hover:bg-orange-50 transition-colors"
@@ -764,6 +830,7 @@ export default function ProfilePage() {
                     onClick={() => {
                       setShowEditTeacher(false)
                       setSelectedTeacher(null)
+                      setSelectedTeacherNotes([])
                     }}
                     className="text-gray-400 hover:text-gray-600"
                   >
@@ -825,11 +892,59 @@ export default function ProfilePage() {
                     </div>
                   </div>
 
+                  {/* Teacher Notes */}
+                  <div className="pt-4 border-t border-gray-200">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Teacher Notes</label>
+                    <div className="space-y-3">
+                      <div className="space-y-2">
+                        <input
+                          type="text"
+                          value={adminNoteForm.title}
+                          onChange={(e) => setAdminNoteForm({ ...adminNoteForm, title: e.target.value })}
+                          className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary text-sm"
+                          placeholder="Note title"
+                        />
+                        <textarea
+                          value={adminNoteForm.note}
+                          onChange={(e) => setAdminNoteForm({ ...adminNoteForm, note: e.target.value })}
+                          rows={3}
+                          className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary text-sm"
+                          placeholder="Write a note for this teacher..."
+                        />
+                        <div className="flex justify-end">
+                          <button
+                            onClick={() => handleAddTeacherNote(selectedTeacher.id)}
+                            disabled={savingAdminNote || !adminNoteForm.title.trim() || !adminNoteForm.note.trim()}
+                            className="px-3 py-2 text-sm font-medium text-white bg-brand-primary rounded-lg hover:bg-brand-primary-dark transition-colors disabled:opacity-50"
+                          >
+                            {savingAdminNote ? 'Adding...' : 'Add Note'}
+                          </button>
+                        </div>
+                      </div>
+                      <div className="max-h-48 overflow-y-auto space-y-2">
+                        {selectedTeacherNotes.length === 0 ? (
+                          <p className="text-sm text-gray-500 text-center py-4">No notes yet</p>
+                        ) : (
+                          selectedTeacherNotes.map((note) => (
+                            <div key={note.id} className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                              <p className="text-sm font-semibold text-gray-900">{note.title}</p>
+                              <p className="text-sm text-gray-700 mt-1">{note.note}</p>
+                              <p className="text-xs text-gray-500 mt-2">
+                                {new Date(note.created_at).toLocaleString()}
+                              </p>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="flex gap-2 justify-end pt-4">
                     <button
                       onClick={() => {
                         setShowEditTeacher(false)
                         setSelectedTeacher(null)
+                        setSelectedTeacherNotes([])
                       }}
                       className="px-4 py-2 text-sm font-medium text-gray-600 border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                     >
