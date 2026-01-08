@@ -116,7 +116,8 @@ export default function DashboardPage() {
           .from('lesson_statuses')
           .select('class_id, co_teacher_id')
           .eq('scheduled_date', todayKey)
-
+          .neq('status', 'rescheduled')
+        
         const todayClassIds = todayLessons?.map((lesson) => lesson.class_id) ?? []
 
         if (todayClassIds.length > 0) {
