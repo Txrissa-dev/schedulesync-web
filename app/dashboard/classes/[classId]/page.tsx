@@ -405,9 +405,11 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
   }
 
   const completedCount = lessons.filter(l => l.status === 'completed').length
+  const rescheduledCount = lessons.filter(l => l.status === 'rescheduled').length
   const totalLessons = classDetails.total_lessons || lessons.length
-  const remainingCount = totalLessons - completedCount
-  const progressPercent = totalLessons > 0 ? (completedCount / totalLessons) * 100 : 0
+  const effectiveTotalLessons = Math.max(totalLessons - rescheduledCount, 0)
+  const remainingCount = Math.max(effectiveTotalLessons - completedCount, 0)
+  const progressPercent = effectiveTotalLessons > 0 ? (completedCount / effectiveTotalLessons) * 100 : 0
   const primaryTeacherName = getTeacherLabel(classDetails.teacher)
   const coTeacherNames = Array.from(
     new Set(
@@ -520,13 +522,13 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
       </div>
 
       {/* Lesson Progress Card */}
-      {totalLessons > 0 && (
+      {effectiveTotalLessons > 0 && (
         <div className="bg-white shadow-lg rounded-2xl p-6">
           <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">LESSON PROGRESS</h3>
 
           <div className="flex items-center gap-6 mb-6">
             <div className="text-5xl font-bold text-gray-900">
-              {completedCount}<span className="text-gray-400">/{totalLessons}</span>
+              {completedCount}<span className="text-gray-400">/{effectiveTotalLessons}</span>
             </div>
             <p className="text-gray-600">{remainingCount} lessons remaining</p>
           </div>
