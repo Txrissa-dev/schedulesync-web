@@ -119,7 +119,13 @@ export default function ProfilePage() {
     note: ''
   })
   const [savingNote, setSavingNote] = useState(false)
-
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  })
+  const [changingPassword, setChangingPassword] = useState(false)
+  
   useEffect(() => {
     const fetchProfileData = async () => {
       try {
@@ -542,22 +548,24 @@ export default function ProfilePage() {
 
     setSavingNote(true)
     try {
-      const { data, error } = await supabase
-        .from('teacher_notes')
-        .insert({
+      const response = await supabase.functions.invoke('add-teacher-note', {
+        body: {
           teacher_id: profile.teacher_id,
           title,
           note
-        })
-        .select()
-        .single()
+        }
+      })
 
-      if (error) throw error
+      if (response.error) {
+        throw response.error
+      }
 
-      if (data) {
-        setMyNotes([data, ...myNotes])
+      if (response.data?.note) {
+        setMyNotes([response.data.note, ...myNotes])
         setNoteForm({ title: '', note: '' })
         setShowAddNote(false)
+      } else if (response.data?.error) {
+        throw new Error(response.data.error)
       }
     } catch (error) {
       console.error('Error adding note:', error)
@@ -578,21 +586,23 @@ export default function ProfilePage() {
 
     setSavingAdminNote(true)
     try {
-      const { data, error } = await supabase
-        .from('teacher_notes')
-        .insert({
+      const response = await supabase.functions.invoke('add-teacher-note', {
+        body: {
           teacher_id: teacherId,
           title,
           note
-        })
-        .select()
-        .single()
+        }
+      })
 
-      if (error) throw error
+      if (response.error) {
+        throw response.error
+      }
 
-      if (data) {
-        setSelectedTeacherNotes([data, ...selectedTeacherNotes])
+      if (response.data?.note) {
+        setSelectedTeacherNotes([response.data.note, ...selectedTeacherNotes])
         setAdminNoteForm({ title: '', note: '' })
+      } else if (response.data?.error) {
+        throw new Error(response.data.error)
       }
     } catch (error) {
       console.error('Error adding teacher note:', error)
@@ -634,6 +644,51 @@ export default function ProfilePage() {
       ))
     } catch (error) {
       console.error('Error marking notification as read:', error)
+    }
+  }
+
+    const handleChangePassword = async () => {
+    const currentPassword = passwordForm.currentPassword.trim()
+    const newPassword = passwordForm.newPassword.trim()
+    const confirmPassword = passwordForm.confirmPassword.trim()
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      alert('Please fill in all password fields')
+      return
+    }
+
+    if (newPassword.length < 8) {
+      alert('New password must be at least 8 characters long')
+      return
+    }
+
+    if (newPassword !== confirmPassword) {
+      alert('New password and confirmation do not match')
+      return
+    }
+
+    setChangingPassword(true)
+    try {
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: profile?.email || '',
+        password: currentPassword
+      })
+
+      if (signInError) {
+        throw signInError
+      }
+
+      const { error } = await supabase.auth.updateUser({ password: newPassword })
+
+      if (error) throw error
+
+      alert('Password updated successfully')
+      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' })
+    } catch (error: any) {
+      console.error('Error changing password:', error)
+      alert(error.message || 'Failed to update password')
+    } finally {
+      setChangingPassword(false)
     }
   }
 
@@ -1237,6 +1292,59 @@ export default function ProfilePage() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Change Password Section (Teacher Only) */}
+      {isTeacher && (
+        <div className="bg-white shadow-lg rounded-xl border border-orange-100 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Change Password</h3>
+          <div className="space-y-4 max-w-md">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
+              <input
+                type="password"
+                value={passwordForm.currentPassword}
+                onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+                placeholder="Enter current password"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+              <input
+                type="password"
+                value={passwordForm.newPassword}
+                onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+                placeholder="Enter new password"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
+              <input
+                type="password"
+                value={passwordForm.confirmPassword}
+                onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+                placeholder="Confirm new password"
+              />
+            </div>
+            <div className="flex justify-end">
+              <button
+                onClick={handleChangePassword}
+                disabled={
+                  changingPassword ||
+                  !passwordForm.currentPassword ||
+                  !passwordForm.newPassword ||
+                  !passwordForm.confirmPassword
+                }
+                className="px-4 py-2 text-sm font-medium text-white bg-brand-primary rounded-lg hover:bg-brand-primary-dark transition-colors disabled:opacity-50"
+              >
+                {changingPassword ? 'Updating...' : 'Update Password'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
