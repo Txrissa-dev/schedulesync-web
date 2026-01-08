@@ -580,8 +580,8 @@ export default function LoginPage() {
         )}
 
         {/* Footer */}
-        <p className="mt-6 text-center text-xs text-gray-600">
-          Internal use only - Authorized personnel
+        <p className="mt-6 text-center text-xs text-[#49B7E6]">
+          Developed by CL Studio · © 2026
         </p>
       </div>
     </div>
