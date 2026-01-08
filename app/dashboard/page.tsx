@@ -447,18 +447,20 @@ export default function DashboardPage() {
       <div className="mt-6 bg-white shadow-lg rounded-xl border border-orange-100 p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-900">Announcements</h3>
-          <button
-            onClick={() => setShowAnnouncementForm(!showAnnouncementForm)}
-            className="flex items-center gap-2 px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-primary-dark transition-colors text-sm font-medium"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Add Announcement
-          </button>
+          {isAdmin && (
+            <button
+              onClick={() => setShowAnnouncementForm(!showAnnouncementForm)}
+              className="flex items-center gap-2 px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-primary-dark transition-colors text-sm font-medium"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Add Announcement
+            </button>
+          )}
         </div>
 
-        {showAnnouncementForm && (
+        {isAdmin && showAnnouncementForm && (
           <div className="mb-6 p-4 bg-orange-50 rounded-lg border border-orange-200">
             <div className="space-y-3">
               <div>
