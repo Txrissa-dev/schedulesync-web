@@ -393,54 +393,6 @@ export default function DashboardPage() {
           </div>
         )}
             
-        {isTeacher && todayClasses.length > 0 && (
-          <div className="mt-8">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Your Classes Today</h3>
-            <div className="space-y-3">
-              {todayClasses.map((cls) => (
-                <div key={cls.id} className="bg-gray-50 rounded-lg p-4 flex items-center justify-between border border-gray-200">
-                  <div>
-                    <h4 className="font-semibold text-gray-900">{cls.name}</h4>
-                    <p className="text-sm text-gray-600">
-                      {cls.subject} • {cls.start_time} - {cls.end_time} • {cls.teacher_name}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      {cls.centre_name} {cls.room && `• Room ${cls.room}`} • {cls.student_count} students
-                    </p>
-                  </div>
-                  <Link
-                    href={`/dashboard/attendance/${cls.id}`}
-                    className="px-4 py-2 bg-brand-success text-white rounded-lg hover:bg-green-700 text-sm inline-block transition-colors font-medium"
-                  >
-                    Mark Attendance
-                  </Link>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="mt-8">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Link href="/dashboard/schedules" className="bg-white border-2 border-brand-secondary text-brand-secondary rounded-xl p-4 hover:bg-blue-50 transition text-center font-medium">
-              View Schedules
-            </Link>
-            <Link href="/dashboard/schedules" className="bg-white border-2 border-brand-success text-brand-success rounded-xl p-4 hover:bg-green-50 transition text-center font-medium">
-              Mark Attendance
-            </Link>
-            {isAdmin && (
-              <>
-                <button className="bg-white border-2 border-brand-warning text-brand-warning rounded-xl p-4 hover:bg-amber-50 transition font-medium">
-                  Manage Staff
-                </button>
-                <button className="bg-white border-2 border-brand-primary text-brand-primary rounded-xl p-4 hover:bg-orange-50 transition font-medium">
-                  Reports
-                </button>
-              </>
-            )}
-          </div>
-        </div>
       </div>
 
       {/* Announcements Section */}
