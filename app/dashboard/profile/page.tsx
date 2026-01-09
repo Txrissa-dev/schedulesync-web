@@ -68,7 +68,9 @@ interface Organisation {
 const isMissingColumnError = (error: any, column: string) => {
   if (!error) return false
   if (error.code === '42703') return true
+  if (error.code === 'PGRST204') return true
   if (typeof error.message === 'string' && error.message.includes(`column "${column}"`)) return true
+  if (typeof error.message === 'string' && error.message.includes(`Could not find the '${column}' column`)) return true
   if (typeof error.details === 'string' && error.details.includes(`column "${column}"`)) return true
   return false
 }
