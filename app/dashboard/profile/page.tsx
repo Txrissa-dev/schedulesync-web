@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 
 interface UserProfile {
@@ -81,7 +81,6 @@ export default function ProfilePage() {
   const [organisation, setOrganisation] = useState<Organisation | null>(null)
   const [teachers, setTeachers] = useState<Teacher[]>([])
   const [centres, setCentres] = useState<Centre[]>([])
-  const [myNotes, setMyNotes] = useState<TeacherNote[]>([])
   const [notifications, setNotifications] = useState<TeacherNotification[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -122,59 +121,12 @@ export default function ProfilePage() {
   const [newCentreNote, setNewCentreNote] = useState('')
   const [savingCentre, setSavingCentre] = useState(false)
 
-  // Notes management states
-  const [showAddNote, setShowAddNote] = useState(false)
-  const [noteForm, setNoteForm] = useState({
-    title: '',
-    note: ''
-  })
-  const [savingNote, setSavingNote] = useState(false)
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
     newPassword: '',
     confirmPassword: ''
   })
   const [changingPassword, setChangingPassword] = useState(false)
-
-    const loadMyNotes = useCallback(async (teacherId: string) => {
-    const { data, error } = await supabase
-      .from('teacher_notes')
-      .select('id, teacher_id, title, note, created_at')
-      .eq('teacher_id', teacherId)
-      .order('created_at', { ascending: false })
-
-    if (data) {
-      setMyNotes(data)
-      return
-    }
-
-    if (error && isMissingColumnError(error, 'title')) {
-      const { data: fallbackData, error: fallbackError } = await supabase
-        .from('teacher_notes')
-        .select('id, teacher_id, note, created_at')
-        .eq('teacher_id', teacherId)
-        .order('created_at', { ascending: false })
-
-      if (fallbackError) {
-        console.error('Error loading my notes (fallback):', fallbackError)
-        return
-      }
-
-      if (fallbackData) {
-        setMyNotes(
-          fallbackData.map(note => ({
-            ...note,
-            title: 'Note'
-          }))
-        )
-      }
-      return
-    }
-
-    if (error) {
-      console.error('Error loading my notes:', error)
-    }
-  }, [])
 
   useEffect(() => {
     const fetchProfileData = async () => {
@@ -258,10 +210,8 @@ export default function ProfilePage() {
             }
           }
 
-          // If teacher, fetch notes and notifications
+          // If teacher, fetch notifications
           if (profileData.teacher_id) {
-            await loadMyNotes(profileData.teacher_id)
-
             // Fetch teacher notifications
             const { data: notificationsData } = await supabase
               .from('teacher_notifications')
@@ -282,7 +232,7 @@ export default function ProfilePage() {
     }
 
     fetchProfileData()
-  }, [loadMyNotes])
+  }, [])
 
   const handleAddTeacher = async () => {
     if (!teacherForm.full_name || !teacherForm.email || !teacherForm.password || !profile?.organisation_id) {
@@ -643,44 +593,6 @@ export default function ProfilePage() {
     }
   }
 
-  const handleAddNote = async () => {
-    const title = noteForm.title.trim()
-    const note = noteForm.note.trim()
-
-    if (!title || !note) {
-      alert('Please fill in both the title and note fields')
-      return
-    }
-
-    if (!profile?.teacher_id) {
-      alert('Unable to add note: teacher profile is missing')
-      return
-    }
-
-    setSavingNote(true)
-    try {
-      const data = await insertTeacherNote(profile.teacher_id, title, note)
-      const insertedNote = data?.[0]
-      const normalizedNote = insertedNote && typeof insertedNote === 'object' && !('title' in insertedNote)
-        ? { ...(insertedNote as TeacherNote), title }
-        : insertedNote
-      
-      if (normalizedNote) {
-        setMyNotes([normalizedNote as TeacherNote, ...myNotes])
-      } else {
-        await loadMyNotes(profile.teacher_id)
-      }
-
-      setNoteForm({ title: '', note: '' })
-      setShowAddNote(false)
-    } catch (error) {
-      console.error('Error adding note:', error)
-      alert('Failed to add note')
-    } finally {
-      setSavingNote(false)
-    }
-  }
-
   const handleAddTeacherNote = async (teacherId: string) => {
     const title = adminNoteForm.title.trim()
     const note = adminNoteForm.note.trim()
@@ -722,22 +634,6 @@ export default function ProfilePage() {
       alert('Failed to add note')
     } finally {
       setSavingAdminNote(false)
-    }
-  }
-
-  const handleDeleteNote = async (noteId: string) => {
-    try {
-      const { error } = await supabase
-        .from('teacher_notes')
-        .delete()
-        .eq('id', noteId)
-
-      if (error) throw error
-
-      setMyNotes(myNotes.filter(n => n.id !== noteId))
-    } catch (error) {
-      console.error('Error deleting note:', error)
-      alert('Failed to delete note')
     }
   }
 
@@ -1458,111 +1354,6 @@ export default function ProfilePage() {
               </button>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* My Notes Section (Teacher Only) */}
-      {isTeacher && (
-        <div className="bg-white shadow-lg rounded-xl border border-orange-100 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">My Notes</h3>
-            <button
-              onClick={() => {
-                setNoteForm({ title: '', note: '' })
-                setShowAddNote(true)
-              }}
-              className="flex items-center gap-2 px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-primary-dark transition-colors text-sm font-medium"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Add Note
-            </button>
-          </div>
-
-          {myNotes.length === 0 ? (
-            <p className="text-center text-gray-500 py-8">No notes yet</p>
-          ) : (
-            <div className="space-y-3">
-              {myNotes.map((note) => (
-                <div key={note.id} className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-gray-900">{note.title}</h4>
-                      <p className="text-sm text-gray-700 mt-1">{note.note}</p>
-                      <p className="text-xs text-gray-500 mt-2">
-                        {new Date(note.created_at).toLocaleString()}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => handleDeleteNote(note.id)}
-                      className="ml-2 text-red-600 hover:text-red-800"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Add Note Modal */}
-          {showAddNote && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-xl p-6 max-w-md w-full">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">Add New Note</h3>
-                  <button
-                    onClick={() => setShowAddNote(false)}
-                    className="text-gray-400 hover:text-gray-600"
-                  >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
-                    <input
-                      type="text"
-                      value={noteForm.title}
-                      onChange={(e) => setNoteForm({ ...noteForm, title: e.target.value })}
-                      className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
-                      placeholder="Enter note title"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Note *</label>
-                    <textarea
-                      value={noteForm.note}
-                      onChange={(e) => setNoteForm({ ...noteForm, note: e.target.value })}
-                      rows={4}
-                      className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
-                      placeholder="Enter note content"
-                    />
-                  </div>
-                  <div className="flex gap-2 justify-end pt-4">
-                    <button
-                      onClick={() => setShowAddNote(false)}
-                      className="px-4 py-2 text-sm font-medium text-gray-600 border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleAddNote}
-                      disabled={savingNote || !noteForm.title || !noteForm.note}
-                      className="px-4 py-2 text-sm font-medium text-white bg-brand-primary rounded-lg hover:bg-brand-primary-dark transition-colors disabled:opacity-50"
-                    >
-                      {savingNote ? 'Adding...' : 'Add Note'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       )}
 
