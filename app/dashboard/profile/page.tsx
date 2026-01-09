@@ -125,6 +125,14 @@ export default function ProfilePage() {
     confirmPassword: ''
   })
   const [changingPassword, setChangingPassword] = useState(false)
+
+  const isMissingColumnError = (error: any, column: string) => {
+    if (!error) return false
+    if (error.code === '42703') return true
+    if (typeof error.message === 'string' && error.message.includes(`column "${column}"`)) return true
+    if (typeof error.details === 'string' && error.details.includes(`column "${column}"`)) return true
+    return false
+  }
   
   useEffect(() => {
     const fetchProfileData = async () => {
@@ -210,16 +218,7 @@ export default function ProfilePage() {
 
           // If teacher, fetch notes and notifications
           if (profileData.teacher_id) {
-            // Fetch teacher notes
-            const { data: notesData } = await supabase
-              .from('teacher_notes')
-              .select('id, teacher_id, title, note, created_at')
-              .eq('teacher_id', profileData.teacher_id)
-              .order('created_at', { ascending: false })
-
-            if (notesData) {
-              setMyNotes(notesData)
-            }
+            await loadMyNotes(profileData.teacher_id)
 
             // Fetch teacher notifications
             const { data: notificationsData } = await supabase
@@ -395,7 +394,7 @@ export default function ProfilePage() {
   }
 
   const loadTeacherNotes = async (teacherId: string) => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('teacher_notes')
       .select('id, teacher_id, title, note, created_at')
       .eq('teacher_id', teacherId)
@@ -403,11 +402,39 @@ export default function ProfilePage() {
 
     if (data) {
       setSelectedTeacherNotes(data)
+      return
+    }
+
+    if (error && isMissingColumnError(error, 'title')) {
+      const { data: fallbackData, error: fallbackError } = await supabase
+        .from('teacher_notes')
+        .select('id, teacher_id, note, created_at')
+        .eq('teacher_id', teacherId)
+        .order('created_at', { ascending: false })
+
+      if (fallbackError) {
+        console.error('Error loading teacher notes (fallback):', fallbackError)
+        return
+      }
+
+      if (fallbackData) {
+        setSelectedTeacherNotes(
+          fallbackData.map(note => ({
+            ...note,
+            title: 'Note'
+          }))
+        )
+      }
+      return
+    }
+
+    if (error) {
+      console.error('Error loading teacher notes:', error)
     }
   }
 
-    const loadMyNotes = async (teacherId: string) => {
-    const { data } = await supabase
+  const loadMyNotes = async (teacherId: string) => {
+    const { data, error } = await supabase
       .from('teacher_notes')
       .select('id, teacher_id, title, note, created_at')
       .eq('teacher_id', teacherId)
@@ -415,6 +442,34 @@ export default function ProfilePage() {
 
     if (data) {
       setMyNotes(data)
+      return
+    }
+
+    if (error && isMissingColumnError(error, 'title')) {
+      const { data: fallbackData, error: fallbackError } = await supabase
+        .from('teacher_notes')
+        .select('id, teacher_id, note, created_at')
+        .eq('teacher_id', teacherId)
+        .order('created_at', { ascending: false })
+
+      if (fallbackError) {
+        console.error('Error loading my notes (fallback):', fallbackError)
+        return
+      }
+
+      if (fallbackData) {
+        setMyNotes(
+          fallbackData.map(note => ({
+            ...note,
+            title: 'Note'
+          }))
+        )
+      }
+      return
+    }
+
+    if (error) {
+      console.error('Error loading my notes:', error)
     }
   }
 
@@ -560,7 +615,7 @@ export default function ProfilePage() {
 
     setSavingNote(true)
     try {
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('teacher_notes')
         .insert({
           teacher_id: profile.teacher_id,
@@ -569,6 +624,22 @@ export default function ProfilePage() {
         })
         .select('id, teacher_id, title, note, created_at')
 
+      if (error && isMissingColumnError(error, 'title')) {
+        const fallbackResponse = await supabase
+          .from('teacher_notes')
+          .insert({
+            teacher_id: profile.teacher_id,
+            note
+          })
+          .select('id, teacher_id, note, created_at')
+
+        data = fallbackResponse.data?.map(fallbackNote => ({
+          ...fallbackNote,
+          title
+        }))
+        error = fallbackResponse.error
+      }
+      
       if (error) {
         throw error
       }
@@ -602,7 +673,7 @@ export default function ProfilePage() {
 
     setSavingAdminNote(true)
     try {
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('teacher_notes')
         .insert({
           teacher_id: teacherId,
@@ -611,6 +682,22 @@ export default function ProfilePage() {
         })
         .select('id, teacher_id, title, note, created_at')
 
+      if (error && isMissingColumnError(error, 'title')) {
+        const fallbackResponse = await supabase
+          .from('teacher_notes')
+          .insert({
+            teacher_id: teacherId,
+            note
+          })
+          .select('id, teacher_id, note, created_at')
+
+        data = fallbackResponse.data?.map(fallbackNote => ({
+          ...fallbackNote,
+          title
+        }))
+        error = fallbackResponse.error
+      }
+      
       if (error) {
         throw error
       }
@@ -623,7 +710,7 @@ export default function ProfilePage() {
         await loadTeacherNotes(teacherId)
       }
 
-            setAdminNoteForm({ title: '', note: '' })
+      setAdminNoteForm({ title: '', note: '' })
 
       const { error: notificationError } = await supabase
         .from('teacher_notifications')
