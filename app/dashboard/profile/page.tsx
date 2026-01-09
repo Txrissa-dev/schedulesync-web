@@ -548,24 +548,24 @@ export default function ProfilePage() {
 
     setSavingNote(true)
     try {
-      const response = await supabase.functions.invoke('add-teacher-note', {
-        body: {
+      const { data, error } = await supabase
+        .from('teacher_notes')
+        .insert({
           teacher_id: profile.teacher_id,
           title,
           note
-        }
-      })
+        })
+        .select('id, teacher_id, title, note, created_at')
+        .single()
 
-      if (response.error) {
-        throw response.error
+      if (error) {
+        throw error
       }
 
-      if (response.data?.note) {
-        setMyNotes([response.data.note, ...myNotes])
+      if (data) {
+        setMyNotes([data, ...myNotes])
         setNoteForm({ title: '', note: '' })
         setShowAddNote(false)
-      } else if (response.data?.error) {
-        throw new Error(response.data.error)
       }
     } catch (error) {
       console.error('Error adding note:', error)
@@ -575,7 +575,7 @@ export default function ProfilePage() {
     }
   }
 
-    const handleAddTeacherNote = async (teacherId: string) => {
+  const handleAddTeacherNote = async (teacherId: string) => {
     const title = adminNoteForm.title.trim()
     const note = adminNoteForm.note.trim()
 
@@ -586,23 +586,35 @@ export default function ProfilePage() {
 
     setSavingAdminNote(true)
     try {
-      const response = await supabase.functions.invoke('add-teacher-note', {
-        body: {
+      const { data, error } = await supabase
+        .from('teacher_notes')
+        .insert({
           teacher_id: teacherId,
           title,
           note
-        }
-      })
+        })
+        .select('id, teacher_id, title, note, created_at')
+        .single()
 
-      if (response.error) {
-        throw response.error
+      if (error) {
+        throw error
       }
 
-      if (response.data?.note) {
-        setSelectedTeacherNotes([response.data.note, ...selectedTeacherNotes])
+      if (data) {
+        setSelectedTeacherNotes([data, ...selectedTeacherNotes])
         setAdminNoteForm({ title: '', note: '' })
-      } else if (response.data?.error) {
-        throw new Error(response.data.error)
+      }
+
+      const { error: notificationError } = await supabase
+        .from('teacher_notifications')
+        .insert({
+          teacher_id: teacherId,
+          message: `New note from admin: ${title}`,
+          is_read: false
+        })
+
+      if (notificationError) {
+        console.error('Error creating notification:', notificationError)
       }
     } catch (error) {
       console.error('Error adding teacher note:', error)
