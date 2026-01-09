@@ -633,7 +633,7 @@ export default function ProfilePage() {
           })
           .select('id, teacher_id, note, created_at')
 
-        data = fallbackResponse.data?.map(fallbackNote => ({
+        data = (fallbackResponse.data ?? []).map(fallbackNote => ({
           ...fallbackNote,
           title
         }))
@@ -691,7 +691,7 @@ export default function ProfilePage() {
           })
           .select('id, teacher_id, note, created_at')
 
-        data = fallbackResponse.data?.map(fallbackNote => ({
+        data = (fallbackResponse.data ?? []).map(fallbackNote => ({
           ...fallbackNote,
           title
         }))
