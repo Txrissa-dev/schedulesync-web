@@ -599,6 +599,57 @@ export default function ProfilePage() {
     }
   }
 
+    const insertTeacherNote = async (teacherId: string, title: string, note: string) => {
+    const basePayload: Record<string, string> = {
+      teacher_id: teacherId,
+      note
+    }
+
+    if (title) {
+      basePayload.title = title
+    }
+
+    if (profile?.organisation_id) {
+      basePayload.organisation_id = profile.organisation_id
+    }
+
+    if (profile?.id) {
+      basePayload.author_id = profile.id
+    }
+
+    let payload = { ...basePayload }
+    let selectFields = 'id, teacher_id, title, note, created_at'
+
+    while (true) {
+      const { data, error } = await supabase
+        .from('teacher_notes')
+        .insert(payload)
+        .select(selectFields)
+
+      if (!error) {
+        return data ?? []
+      }
+
+      if (payload.title && isMissingColumnError(error, 'title')) {
+        delete payload.title
+        selectFields = 'id, teacher_id, note, created_at'
+        continue
+      }
+
+      if (payload.organisation_id && isMissingColumnError(error, 'organisation_id')) {
+        delete payload.organisation_id
+        continue
+      }
+
+      if (payload.author_id && isMissingColumnError(error, 'author_id')) {
+        delete payload.author_id
+        continue
+      }
+
+      throw error
+    }
+  }
+
   const handleAddNote = async () => {
     const title = noteForm.title.trim()
     const note = noteForm.note.trim()
@@ -615,39 +666,14 @@ export default function ProfilePage() {
 
     setSavingNote(true)
     try {
-      let { data, error } = await supabase
-        .from('teacher_notes')
-        .insert({
-          teacher_id: profile.teacher_id,
-          title,
-          note
-        })
-        .select('id, teacher_id, title, note, created_at')
-
-      if (error && isMissingColumnError(error, 'title')) {
-        const fallbackResponse = await supabase
-          .from('teacher_notes')
-          .insert({
-            teacher_id: profile.teacher_id,
-            note
-          })
-          .select('id, teacher_id, note, created_at')
-
-        data = (fallbackResponse.data ?? []).map(fallbackNote => ({
-          ...fallbackNote,
-          title
-        }))
-        error = fallbackResponse.error
-      }
-      
-      if (error) {
-        throw error
-      }
-
+      const data = await insertTeacherNote(profile.teacher_id, title, note)
       const insertedNote = data?.[0]
-
-      if (insertedNote) {
-        setMyNotes([insertedNote, ...myNotes])
+      const normalizedNote = insertedNote && !('title' in insertedNote)
+        ? { ...insertedNote, title }
+        : insertedNote
+      
+      if (normalizedNote) {
+        setMyNotes([normalizedNote as TeacherNote, ...myNotes])
       } else {
         await loadMyNotes(profile.teacher_id)
       }
@@ -673,39 +699,14 @@ export default function ProfilePage() {
 
     setSavingAdminNote(true)
     try {
-      let { data, error } = await supabase
-        .from('teacher_notes')
-        .insert({
-          teacher_id: teacherId,
-          title,
-          note
-        })
-        .select('id, teacher_id, title, note, created_at')
-
-      if (error && isMissingColumnError(error, 'title')) {
-        const fallbackResponse = await supabase
-          .from('teacher_notes')
-          .insert({
-            teacher_id: teacherId,
-            note
-          })
-          .select('id, teacher_id, note, created_at')
-
-        data = (fallbackResponse.data ?? []).map(fallbackNote => ({
-          ...fallbackNote,
-          title
-        }))
-        error = fallbackResponse.error
-      }
-      
-      if (error) {
-        throw error
-      }
-
+      const data = await insertTeacherNote(teacherId, title, note)
       const insertedNote = data?.[0]
+      const normalizedNote = insertedNote && !('title' in insertedNote)
+        ? { ...insertedNote, title }
+        : insertedNote
 
-      if (insertedNote) {
-        setSelectedTeacherNotes([insertedNote, ...selectedTeacherNotes])
+      if (normalizedNote) {
+        setSelectedTeacherNotes([normalizedNote as TeacherNote, ...selectedTeacherNotes])
       } else {
         await loadTeacherNotes(teacherId)
       }
