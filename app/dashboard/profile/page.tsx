@@ -394,7 +394,7 @@ export default function ProfilePage() {
     }
   }
 
-    const loadTeacherNotes = async (teacherId: string) => {
+  const loadTeacherNotes = async (teacherId: string) => {
     const { data } = await supabase
       .from('teacher_notes')
       .select('id, teacher_id, title, note, created_at')
@@ -403,6 +403,18 @@ export default function ProfilePage() {
 
     if (data) {
       setSelectedTeacherNotes(data)
+    }
+  }
+
+    const loadMyNotes = async (teacherId: string) => {
+    const { data } = await supabase
+      .from('teacher_notes')
+      .select('id, teacher_id, title, note, created_at')
+      .eq('teacher_id', teacherId)
+      .order('created_at', { ascending: false })
+
+    if (data) {
+      setMyNotes(data)
     }
   }
 
@@ -556,17 +568,21 @@ export default function ProfilePage() {
           note
         })
         .select('id, teacher_id, title, note, created_at')
-        .single()
 
       if (error) {
         throw error
       }
 
-      if (data) {
-        setMyNotes([data, ...myNotes])
-        setNoteForm({ title: '', note: '' })
-        setShowAddNote(false)
+      const insertedNote = data?.[0]
+
+      if (insertedNote) {
+        setMyNotes([insertedNote, ...myNotes])
+      } else {
+        await loadMyNotes(profile.teacher_id)
       }
+
+      setNoteForm({ title: '', note: '' })
+      setShowAddNote(false)
     } catch (error) {
       console.error('Error adding note:', error)
       alert('Failed to add note')
@@ -594,16 +610,20 @@ export default function ProfilePage() {
           note
         })
         .select('id, teacher_id, title, note, created_at')
-        .single()
 
       if (error) {
         throw error
       }
 
-      if (data) {
-        setSelectedTeacherNotes([data, ...selectedTeacherNotes])
-        setAdminNoteForm({ title: '', note: '' })
+      const insertedNote = data?.[0]
+
+      if (insertedNote) {
+        setSelectedTeacherNotes([insertedNote, ...selectedTeacherNotes])
+      } else {
+        await loadTeacherNotes(teacherId)
       }
+
+            setAdminNoteForm({ title: '', note: '' })
 
       const { error: notificationError } = await supabase
         .from('teacher_notifications')
