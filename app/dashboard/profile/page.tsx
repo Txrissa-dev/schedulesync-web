@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 
 interface UserProfile {
@@ -65,6 +65,14 @@ interface Organisation {
   name: string
 }
 
+const isMissingColumnError = (error: any, column: string) => {
+  if (!error) return false
+  if (error.code === '42703') return true
+  if (typeof error.message === 'string' && error.message.includes(`column "${column}"`)) return true
+  if (typeof error.details === 'string' && error.details.includes(`column "${column}"`)) return true
+  return false
+}
+
 export default function ProfilePage() {
   const defaultTeacherPassword = 'password123'
   const [profile, setProfile] = useState<UserProfile | null>(null)
@@ -126,14 +134,46 @@ export default function ProfilePage() {
   })
   const [changingPassword, setChangingPassword] = useState(false)
 
-  const isMissingColumnError = (error: any, column: string) => {
-    if (!error) return false
-    if (error.code === '42703') return true
-    if (typeof error.message === 'string' && error.message.includes(`column "${column}"`)) return true
-    if (typeof error.details === 'string' && error.details.includes(`column "${column}"`)) return true
-    return false
-  }
-  
+    const loadMyNotes = useCallback(async (teacherId: string) => {
+    const { data, error } = await supabase
+      .from('teacher_notes')
+      .select('id, teacher_id, title, note, created_at')
+      .eq('teacher_id', teacherId)
+      .order('created_at', { ascending: false })
+
+    if (data) {
+      setMyNotes(data)
+      return
+    }
+
+    if (error && isMissingColumnError(error, 'title')) {
+      const { data: fallbackData, error: fallbackError } = await supabase
+        .from('teacher_notes')
+        .select('id, teacher_id, note, created_at')
+        .eq('teacher_id', teacherId)
+        .order('created_at', { ascending: false })
+
+      if (fallbackError) {
+        console.error('Error loading my notes (fallback):', fallbackError)
+        return
+      }
+
+      if (fallbackData) {
+        setMyNotes(
+          fallbackData.map(note => ({
+            ...note,
+            title: 'Note'
+          }))
+        )
+      }
+      return
+    }
+
+    if (error) {
+      console.error('Error loading my notes:', error)
+    }
+  }, [])
+
   useEffect(() => {
     const fetchProfileData = async () => {
       try {
@@ -240,7 +280,7 @@ export default function ProfilePage() {
     }
 
     fetchProfileData()
-  }, [])
+  }, [loadMyNotes])
 
   const handleAddTeacher = async () => {
     if (!teacherForm.full_name || !teacherForm.email || !teacherForm.password || !profile?.organisation_id) {
@@ -430,46 +470,6 @@ export default function ProfilePage() {
 
     if (error) {
       console.error('Error loading teacher notes:', error)
-    }
-  }
-
-  const loadMyNotes = async (teacherId: string) => {
-    const { data, error } = await supabase
-      .from('teacher_notes')
-      .select('id, teacher_id, title, note, created_at')
-      .eq('teacher_id', teacherId)
-      .order('created_at', { ascending: false })
-
-    if (data) {
-      setMyNotes(data)
-      return
-    }
-
-    if (error && isMissingColumnError(error, 'title')) {
-      const { data: fallbackData, error: fallbackError } = await supabase
-        .from('teacher_notes')
-        .select('id, teacher_id, note, created_at')
-        .eq('teacher_id', teacherId)
-        .order('created_at', { ascending: false })
-
-      if (fallbackError) {
-        console.error('Error loading my notes (fallback):', fallbackError)
-        return
-      }
-
-      if (fallbackData) {
-        setMyNotes(
-          fallbackData.map(note => ({
-            ...note,
-            title: 'Note'
-          }))
-        )
-      }
-      return
-    }
-
-    if (error) {
-      console.error('Error loading my notes:', error)
     }
   }
 
