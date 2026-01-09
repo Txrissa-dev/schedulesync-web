@@ -615,10 +615,6 @@ export default function ProfilePage() {
       basePayload.organisation_id = profile.organisation_id
     }
 
-    if (profile?.id) {
-      basePayload.author_id = profile.id
-    }
-
     let payload = { ...basePayload }
     let selectFields = 'id, teacher_id, title, note, created_at'
 
@@ -640,11 +636,6 @@ export default function ProfilePage() {
 
       if (payload.organisation_id && isMissingColumnError(error, 'organisation_id')) {
         delete payload.organisation_id
-        continue
-      }
-
-      if (payload.author_id && isMissingColumnError(error, 'author_id')) {
-        delete payload.author_id
         continue
       }
 
