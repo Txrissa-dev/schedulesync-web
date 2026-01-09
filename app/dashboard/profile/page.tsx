@@ -599,7 +599,7 @@ export default function ProfilePage() {
     }
   }
 
-    const insertTeacherNote = async (teacherId: string, title: string, note: string) => {
+  const insertTeacherNote = async (teacherId: string, title: string, note: string) => {
     const basePayload: Record<string, string> = {
       teacher_id: teacherId,
       note
@@ -668,8 +668,8 @@ export default function ProfilePage() {
     try {
       const data = await insertTeacherNote(profile.teacher_id, title, note)
       const insertedNote = data?.[0]
-      const normalizedNote = insertedNote && !('title' in insertedNote)
-        ? { ...insertedNote, title }
+      const normalizedNote = insertedNote && typeof insertedNote === 'object' && !('title' in insertedNote)
+        ? { ...(insertedNote as TeacherNote), title }
         : insertedNote
       
       if (normalizedNote) {
@@ -701,8 +701,8 @@ export default function ProfilePage() {
     try {
       const data = await insertTeacherNote(teacherId, title, note)
       const insertedNote = data?.[0]
-      const normalizedNote = insertedNote && !('title' in insertedNote)
-        ? { ...insertedNote, title }
+      const normalizedNote = insertedNote && typeof insertedNote === 'object' && !('title' in insertedNote)
+        ? { ...(insertedNote as TeacherNote), title }
         : insertedNote
 
       if (normalizedNote) {
