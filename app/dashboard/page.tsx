@@ -61,6 +61,7 @@ export default function DashboardPage() {
   const [newAnnouncement, setNewAnnouncement] = useState({ title: '', message: '' })
   const [savingAnnouncement, setSavingAnnouncement] = useState(false)
   const [deletingAnnouncementId, setDeletingAnnouncementId] = useState<string | null>(null)
+  const [dashboardView, setDashboardView] = useState<'admin' | 'teacher'>('admin')
   
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -260,6 +261,19 @@ export default function DashboardPage() {
     fetchDashboardData()
   }, [])
 
+  useEffect(() => {
+    if (!userProfile) return
+
+    const isAdminUser = userProfile.has_admin_access || userProfile.is_super_admin
+    const isTeacherUser = userProfile.teacher_id !== null
+
+    if (isAdminUser && !isTeacherUser) {
+      setDashboardView('admin')
+    } else if (isTeacherUser && !isAdminUser) {
+      setDashboardView('teacher')
+    }
+  }, [userProfile])
+
   const handleAddAnnouncement = async () => {
     if (!newAnnouncement.title || !newAnnouncement.message || !userProfile) return
 
@@ -305,7 +319,7 @@ export default function DashboardPage() {
   }
 
   const handleDeleteAnnouncement = async (announcementId: string) => {
-    if (!isAdmin) return
+    if (!isAdminView) return
 
     const confirmed = window.confirm('Delete this announcement? This action cannot be undone.')
     if (!confirmed) return
@@ -334,6 +348,8 @@ export default function DashboardPage() {
 
   const isAdmin = userProfile?.has_admin_access || userProfile?.is_super_admin
   const isTeacher = userProfile?.teacher_id !== null
+  const isAdminView = Boolean(isAdmin && (!isTeacher || dashboardView === 'admin'))
+  const isTeacherView = Boolean(isTeacher && (!isAdmin || dashboardView === 'teacher'))
 
   // Format today's date
   const today = new Date()
@@ -350,10 +366,44 @@ export default function DashboardPage() {
       <div className="mb-6">
         <div className="flex items-baseline gap-2">
           <h1 className="text-2xl font-bold text-brand-primary">{dateString}</h1>
-          {isAdmin && (
+          {isAdminView && (
             <span className="text-sm text-gray-600">(Admin View - All Teachers)</span>
           )}
+          {isTeacherView && (
+            <span className="text-sm text-gray-600">(Teacher View - My Classes)</span>
+          )}
         </div>
+        {isAdmin && isTeacher && (
+          <div className="mt-3 flex items-center gap-3">
+            <span className="text-sm text-gray-600">View:</span>
+            <div className="inline-flex rounded-lg border border-gray-200 bg-white p-1 shadow-sm">
+              <button
+                type="button"
+                onClick={() => setDashboardView('admin')}
+                aria-pressed={isAdminView}
+                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                  isAdminView
+                    ? 'bg-brand-primary text-white'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Admin
+              </button>
+              <button
+                type="button"
+                onClick={() => setDashboardView('teacher')}
+                aria-pressed={isTeacherView}
+                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                  isTeacherView
+                    ? 'bg-brand-primary text-white'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Teacher
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="bg-white shadow-lg rounded-xl border border-orange-100 p-6">
@@ -362,11 +412,11 @@ export default function DashboardPage() {
             Welcome, {userProfile?.full_name || 'User'}
           </h2>
           <p className="text-sm text-gray-600">
-            {isAdmin ? 'Administrator' : isTeacher ? 'Teacher' : 'User'} Dashboard
+            {isAdminView ? 'Administrator' : isTeacherView ? 'Teacher' : 'User'} Dashboard
           </p>
         </div>
 
-        {isAdmin && (
+        {isAdminView && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div className="bg-orange-50 rounded-xl p-6 border border-orange-100">
               <h3 className="text-lg font-semibold text-brand-primary mb-2">Centres</h3>
@@ -400,7 +450,7 @@ export default function DashboardPage() {
       <div className="mt-6 bg-white shadow-lg rounded-xl border border-orange-100 p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-900">Announcements</h3>
-          {isAdmin && (
+          {isAdminView && (
             <button
               onClick={() => setShowAnnouncementForm(!showAnnouncementForm)}
               className="flex items-center gap-2 px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-primary-dark transition-colors text-sm font-medium"
@@ -413,7 +463,7 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {isAdmin && showAnnouncementForm && (
+        {isAdminView && showAnnouncementForm && (
           <div className="mb-6 p-4 bg-orange-50 rounded-lg border border-orange-200">
             <div className="space-y-3">
               <div>
@@ -474,7 +524,7 @@ export default function DashboardPage() {
                       <span>{new Date(announcement.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                     </div>
                   </div>
-                  {isAdmin && (
+                  {isAdminView && (
                     <button
                       type="button"
                       onClick={() => handleDeleteAnnouncement(announcement.id)}
@@ -491,52 +541,101 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* All Classes Today Section */}
-      <div className="mt-6 bg-white shadow-lg rounded-xl border border-orange-100 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">All Classes Today</h3>
-        {allClassesToday.length === 0 ? (
-          <p className="text-center text-gray-500 py-8">No classes scheduled for today</p>
-        ) : (
-          <div className="space-y-3">
-            {allClassesToday.map((cls) => (
-              <div key={cls.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-brand-primary transition-colors">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-gray-900">{cls.name}</h4>
-                    <div className="flex flex-wrap gap-3 mt-1 text-sm text-gray-600">
-                      <span className="flex items-center">
-                        <span className="font-medium text-brand-primary mr-1">Subject:</span>
-                        {cls.subject}
-                      </span>
-                      <span className="flex items-center">
-                        <span className="font-medium text-brand-secondary mr-1">Time:</span>
-                        {cls.start_time} - {cls.end_time}
-                      </span>
-                      {cls.room && (
+      {isTeacherView && (
+        <div className="mt-6 bg-white shadow-lg rounded-xl border border-orange-100 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">My Classes Today</h3>
+          {todayClasses.length === 0 ? (
+            <p className="text-center text-gray-500 py-8">No classes scheduled for today</p>
+          ) : (
+            <div className="space-y-3">
+              {todayClasses.map((cls) => (
+                <div key={cls.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-brand-primary transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-900">{cls.name}</h4>
+                      <div className="flex flex-wrap gap-3 mt-1 text-sm text-gray-600">
                         <span className="flex items-center">
-                          <span className="font-medium text-brand-warning mr-1">Room:</span>
-                          {cls.room}
+                          <span className="font-medium text-brand-primary mr-1">Subject:</span>
+                          {cls.subject}
                         </span>
-                      )}
-                    </div>
-                    <div className="flex flex-wrap gap-3 mt-2 text-sm">
-                      <span className="text-gray-600">
-                        Centre: <span className="font-medium">{cls.centre_name}</span>
-                      </span>
-                      <span className="text-gray-600">
-                        Teacher: <span className="font-medium">{cls.teacher_name}</span>
-                      </span>
-                      <span className="text-gray-600">
-                        Students: <span className="font-medium text-brand-success">{cls.student_count}</span>
-                      </span>
+                        <span className="flex items-center">
+                          <span className="font-medium text-brand-secondary mr-1">Time:</span>
+                          {cls.start_time} - {cls.end_time}
+                        </span>
+                        {cls.room && (
+                          <span className="flex items-center">
+                            <span className="font-medium text-brand-warning mr-1">Room:</span>
+                            {cls.room}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-3 mt-2 text-sm">
+                        <span className="text-gray-600">
+                          Centre: <span className="font-medium">{cls.centre_name}</span>
+                        </span>
+                        <span className="text-gray-600">
+                          Teacher: <span className="font-medium">{cls.teacher_name}</span>
+                        </span>
+                        <span className="text-gray-600">
+                          Students: <span className="font-medium text-brand-success">{cls.student_count}</span>
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {isAdminView && (
+        <div className="mt-6 bg-white shadow-lg rounded-xl border border-orange-100 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">All Classes Today</h3>
+          {allClassesToday.length === 0 ? (
+            <p className="text-center text-gray-500 py-8">No classes scheduled for today</p>
+          ) : (
+            <div className="space-y-3">
+              {allClassesToday.map((cls) => (
+                <div key={cls.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-brand-primary transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-900">{cls.name}</h4>
+                      <div className="flex flex-wrap gap-3 mt-1 text-sm text-gray-600">
+                        <span className="flex items-center">
+                          <span className="font-medium text-brand-primary mr-1">Subject:</span>
+                          {cls.subject}
+                        </span>
+                        <span className="flex items-center">
+                          <span className="font-medium text-brand-secondary mr-1">Time:</span>
+                          {cls.start_time} - {cls.end_time}
+                        </span>
+                        {cls.room && (
+                          <span className="flex items-center">
+                            <span className="font-medium text-brand-warning mr-1">Room:</span>
+                            {cls.room}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-3 mt-2 text-sm">
+                        <span className="text-gray-600">
+                          Centre: <span className="font-medium">{cls.centre_name}</span>
+                        </span>
+                        <span className="text-gray-600">
+                          Teacher: <span className="font-medium">{cls.teacher_name}</span>
+                        </span>
+                        <span className="text-gray-600">
+                          Students: <span className="font-medium text-brand-success">{cls.student_count}</span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
