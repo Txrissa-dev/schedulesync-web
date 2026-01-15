@@ -163,8 +163,8 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
 
   const fetchClassStudents = async (includeNotes: boolean) => {
     const selectFields = includeNotes
-      ? 'id, student_id, notes, students (id, name)'
-      : 'id, student_id, students (id, name)'
+      ? 'id, student_id, notes, students:student_id (id, name)'
+      : 'id, student_id, students:student_id (id, name)'
     return supabase
       .from('class_students')
       .select(selectFields)
@@ -319,8 +319,8 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
     try {
       const insertSelect = async (includeNotes: boolean) => {
         const selectFields = includeNotes
-          ? 'id, student_id, notes, students (id, name)'
-          : 'id, student_id, students (id, name)'
+          ? 'id, student_id, notes, students:student_id (id, name)'
+          : 'id, student_id, students:student_id (id, name)'
         return supabase
           .from('class_students')
           .insert({ class_id: classDetails.id, student_id: studentId })
