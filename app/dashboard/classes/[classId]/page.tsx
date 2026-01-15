@@ -115,6 +115,7 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
   const [savingStudentId, setSavingStudentId] = useState<string | null>(null)
   const [addingStudent, setAddingStudent] = useState(false)
   const [removingStudentId, setRemovingStudentId] = useState<string | null>(null)
+  const [supportsStudentNotes, setSupportsStudentNotes] = useState(true)
   const [editForm, setEditForm] = useState({
     name: '',
     subject: '',
@@ -154,6 +155,21 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
 
     fetchProfile()
   }, [])
+
+  const isMissingNotesColumn = (error: any) => {
+    if (!error) return false
+    return error.code === '42703' || String(error.message || '').toLowerCase().includes('notes')
+  }
+
+  const fetchClassStudents = async (includeNotes: boolean) => {
+    const selectFields = includeNotes
+      ? 'id, student_id, notes, students (id, name)'
+      : 'id, student_id, students (id, name)'
+    return supabase
+      .from('class_students')
+      .select(selectFields)
+      .eq('class_id', params.classId)
+  }
 
   const fetchClassData = async () => {
     try {
@@ -197,13 +213,21 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
         setLessons(lessonsData)
       }
 
-      const { data: classStudents } = await supabase
-        .from('class_students')
-        .select('id, student_id, notes, students:student_id (id, name)')
-        .eq('class_id', params.classId)
+      const { data: classStudents, error: classStudentsError } = await fetchClassStudents(true)
+      let resolvedStudents = classStudents
 
-      if (classStudents) {
-        const normalized = classStudents
+      if (classStudentsError && isMissingNotesColumn(classStudentsError)) {
+        setSupportsStudentNotes(false)
+        const { data: fallbackStudents } = await fetchClassStudents(false)
+        resolvedStudents = fallbackStudents
+      } else if (classStudentsError) {
+        throw classStudentsError
+      } else {
+        setSupportsStudentNotes(true)
+      }
+
+      if (resolvedStudents) {
+        const normalized = resolvedStudents
           .map((entry: any) => ({
             id: entry.id,
             student_id: entry.student_id,
@@ -293,11 +317,25 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
     }
     setAddingStudent(true)
     try {
-      const { data: assignment, error } = await supabase
-        .from('class_students')
-        .insert({ class_id: classDetails.id, student_id: studentId })
-        .select('id, student_id, notes, students:student_id (id, name)')
-        .single()
+      const insertSelect = async (includeNotes: boolean) => {
+        const selectFields = includeNotes
+          ? 'id, student_id, notes, students (id, name)'
+          : 'id, student_id, students (id, name)'
+        return supabase
+          .from('class_students')
+          .insert({ class_id: classDetails.id, student_id: studentId })
+          .select(selectFields)
+          .single()
+      }
+
+      let { data: assignment, error } = await insertSelect(true)
+
+      if (error && isMissingNotesColumn(error)) {
+        setSupportsStudentNotes(false)
+        const fallback = await insertSelect(false)
+        assignment = fallback.data
+        error = fallback.error
+      }
 
       if (error) throw error
 
@@ -365,6 +403,7 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
   }
 
   const handleSaveStudentNotes = async (classStudentId: string, notes: string) => {
+    if (!supportsStudentNotes) return
     setSavingStudentId(classStudentId)
     const cleanedNotes = notes.trim()
     try {
@@ -779,7 +818,7 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <p className="font-semibold text-gray-900">{student.name}</p>
-                      {!isAdmin && (
+                      {!isAdmin && supportsStudentNotes && (
                         <p className="text-sm text-gray-600 mt-2">
                           {student.notes ? student.notes : 'No notes added'}
                         </p>
@@ -797,7 +836,7 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
                     )}
                   </div>
 
-                  {isAdmin && (
+                  {isAdmin && supportsStudentNotes && (
                     <div>
                       <label className="block text-xs font-semibold text-gray-500 mb-2">Notes</label>
                       <textarea
