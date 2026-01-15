@@ -42,6 +42,13 @@ interface Student {
   name: string
 }
 
+interface UserProfile {
+  organisation_id: string | null
+  has_admin_access: boolean
+  is_super_admin: boolean
+  teacher_id: string | null
+}
+
 interface LessonRecord {
   class_id: string
   lesson_number: number
@@ -62,7 +69,9 @@ export default function ClassesPage() {
   const [loading, setLoading] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
   const [organisationId, setOrganisationId] = useState<string | null>(null)
-
+ const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
+  const [classView, setClassView] = useState<'admin' | 'teacher'>('admin')
+  
   // Add Class Modal States
   const [showAddClass, setShowAddClass] = useState(false)
   const [teachers, setTeachers] = useState<Teacher[]>([])
@@ -91,6 +100,7 @@ export default function ClassesPage() {
   useEffect(() => {
     const fetchClasses = async () => {
       try {
+        setLoading(true)
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return
 
@@ -105,7 +115,13 @@ export default function ClassesPage() {
 
         setIsAdmin(profile.has_admin_access || profile.is_super_admin || false)
         setOrganisationId(profile.organisation_id)
+        setUserProfile(profile)
 
+        const isAdminUser = profile.has_admin_access || profile.is_super_admin
+        const isTeacherUser = Boolean(profile.teacher_id)
+        const isAdminView = isAdminUser && (!isTeacherUser || classView === 'admin')
+        const isTeacherView = isTeacherUser && (!isAdminUser || classView === 'teacher')
+        
         // Build query based on user role
         let query = supabase
           .from('classes')
@@ -124,8 +140,8 @@ export default function ClassesPage() {
           `)
           .eq('organisation_id', profile.organisation_id)
 
-        // If user is a teacher (not admin), only show their classes
-        if (profile.teacher_id && !profile.has_admin_access) {
+        // If viewing as teacher, only show their classes
+        if (profile.teacher_id && isTeacherView) {
           query = query.eq('teacher_id', profile.teacher_id)
         }
 
@@ -195,7 +211,20 @@ export default function ClassesPage() {
     }
 
     fetchClasses()
-  }, [])
+  }, [classView])
+
+  useEffect(() => {
+    if (!userProfile) return
+
+    const isAdminUser = userProfile.has_admin_access || userProfile.is_super_admin
+    const isTeacherUser = userProfile.teacher_id !== null
+
+    if (isAdminUser && !isTeacherUser) {
+      setClassView('admin')
+    } else if (isTeacherUser && !isAdminUser) {
+      setClassView('teacher')
+    }
+  }, [userProfile])
 
   const handleTeacherChange = (teacherId: string) => {
     setClassForm({ ...classForm, teacher_id: teacherId, subject: '' })
@@ -353,6 +382,10 @@ export default function ClassesPage() {
     return <div className="text-center py-12">Loading classes...</div>
   }
 
+  const isTeacher = userProfile?.teacher_id !== null
+  const isAdminView = Boolean(isAdmin && (!isTeacher || classView === 'admin'))
+  const isTeacherView = Boolean(isTeacher && (!isAdmin || classView === 'teacher'))
+
   // Group classes by subject (like iOS app)
   const classesBySubject = classes.reduce((acc, cls) => {
     const subject = cls.subject.toUpperCase()
@@ -367,7 +400,15 @@ export default function ClassesPage() {
       <div className="mb-6">
         <p className="text-sm text-gray-600">{classes.length} Active Classes</p>
         <div className="flex items-center justify-between">
-          <h1 className="text-4xl font-bold text-gray-900">Classes</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-4xl font-bold text-gray-900">Classes</h1>
+            {isAdminView && (
+              <span className="text-sm text-gray-600">(Admin View - All Teachers)</span>
+            )}
+            {isTeacherView && (
+              <span className="text-sm text-gray-600">(Teacher View - My Classes)</span>
+            )}
+          </div>
           {isAdmin && (
             <button
               onClick={() => setShowAddClass(true)}
@@ -379,6 +420,37 @@ export default function ClassesPage() {
             </button>
           )}
         </div>
+        {isAdmin && isTeacher && (
+          <div className="mt-3 flex items-center gap-3">
+            <span className="text-sm text-gray-600">View:</span>
+            <div className="inline-flex rounded-lg border border-gray-200 bg-white p-1 shadow-sm">
+              <button
+                type="button"
+                onClick={() => setClassView('admin')}
+                aria-pressed={isAdminView}
+                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                  isAdminView
+                    ? 'bg-brand-primary text-white'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Admin
+              </button>
+              <button
+                type="button"
+                onClick={() => setClassView('teacher')}
+                aria-pressed={isTeacherView}
+                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                  isTeacherView
+                    ? 'bg-brand-primary text-white'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Teacher
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {classes.length === 0 ? (
