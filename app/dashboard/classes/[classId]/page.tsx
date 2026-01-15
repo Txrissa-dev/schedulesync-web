@@ -46,6 +46,24 @@ interface CentreOption {
   name: string
 }
 
+interface StudentOption {
+  id: string
+  name: string
+}
+
+interface EnrolledStudent {
+  id: string
+  student_id: string
+  name: string
+  notes: string
+}
+
+interface UserProfile {
+  organisation_id: string | null
+  has_admin_access: boolean
+  is_super_admin: boolean
+}
+
 type CoTeacherAssignment = {
   date: string
   teacher_id: string
@@ -82,6 +100,14 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
     { date: '', teacher_id: '' }
   ])
   const coTeacherSectionRef = useRef<HTMLDivElement | null>(null)
+  const [enrolledStudents, setEnrolledStudents] = useState<EnrolledStudent[]>([])
+  const [students, setStudents] = useState<StudentOption[]>([])
+  const [studentSearchQuery, setStudentSearchQuery] = useState('')
+  const [filteredStudents, setFilteredStudents] = useState<StudentOption[]>([])
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [savingStudentId, setSavingStudentId] = useState<string | null>(null)
+  const [addingStudent, setAddingStudent] = useState(false)
+  const [removingStudentId, setRemovingStudentId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState({
     name: '',
     subject: '',
@@ -98,13 +124,29 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
     fetchClassData()
   }, [params.classId])
 
-    useEffect(() => {
+  useEffect(() => {
     if (showEditModal && editModalFocus === 'coTeacher') {
       requestAnimationFrame(() => {
         coTeacherSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
       })
     }
   }, [showEditModal, editModalFocus])
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const { data: profile } = await supabase
+        .from('users')
+        .select('organisation_id, has_admin_access, is_super_admin')
+        .eq('auth_id', user.id)
+        .single()
+
+      setIsAdmin(Boolean(profile?.has_admin_access || profile?.is_super_admin))
+    }
+
+    fetchProfile()
+  }, [])
 
   const fetchClassData = async () => {
     try {
@@ -146,6 +188,23 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
 
       if (lessonsData) {
         setLessons(lessonsData)
+      }
+
+      const { data: classStudents } = await supabase
+        .from('class_students')
+        .select('id, student_id, notes, students:student_id (id, name)')
+        .eq('class_id', params.classId)
+
+      if (classStudents) {
+        const normalized = classStudents
+          .map((entry: any) => ({
+            id: entry.id,
+            student_id: entry.student_id,
+            name: entry.students?.name || 'Unnamed student',
+            notes: entry.notes || ''
+          }))
+          .sort((a: EnrolledStudent, b: EnrolledStudent) => a.name.localeCompare(b.name))
+        setEnrolledStudents(normalized)
       }
     } catch (error) {
       console.error('Error fetching class data:', error)
@@ -190,6 +249,136 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
 
     fetchOptions()
   }, [classDetails?.organisation_id])
+
+  useEffect(() => {
+    const fetchStudents = async () => {
+      if (!classDetails?.organisation_id || !isAdmin) return
+      const { data: studentsData } = await supabase
+        .from('students')
+        .select('id, name')
+        .eq('organisation_id', classDetails.organisation_id)
+        .order('name')
+      if (studentsData) setStudents(studentsData)
+    }
+
+    fetchStudents()
+  }, [classDetails?.organisation_id, isAdmin])
+
+  useEffect(() => {
+    if (!studentSearchQuery.trim()) {
+      setFilteredStudents([])
+      return
+    }
+    const query = studentSearchQuery.toLowerCase()
+    const enrolledIds = new Set(enrolledStudents.map(student => student.student_id))
+    const filtered = students.filter(student =>
+      student.name.toLowerCase().includes(query) && !enrolledIds.has(student.id)
+    )
+    setFilteredStudents(filtered)
+  }, [studentSearchQuery, students, enrolledStudents])
+
+  const handleAssignStudent = async (studentId: string) => {
+    if (!classDetails) return
+    if (enrolledStudents.some(student => student.student_id === studentId)) {
+      setStudentSearchQuery('')
+      setFilteredStudents([])
+      return
+    }
+    setAddingStudent(true)
+    try {
+      const { data: assignment, error } = await supabase
+        .from('class_students')
+        .insert({ class_id: classDetails.id, student_id: studentId })
+        .select('id, student_id, notes, students:student_id (id, name)')
+        .single()
+
+      if (error) throw error
+
+      if (assignment) {
+        const newStudent = {
+          id: assignment.id,
+          student_id: assignment.student_id,
+          name: assignment.students?.name || 'Unnamed student',
+          notes: assignment.notes || ''
+        }
+        setEnrolledStudents(prev =>
+          [...prev, newStudent].sort((a, b) => a.name.localeCompare(b.name))
+        )
+      }
+
+      setStudentSearchQuery('')
+      setFilteredStudents([])
+    } catch (error) {
+      console.error('Error assigning student:', error)
+      alert('Failed to add student to class')
+    } finally {
+      setAddingStudent(false)
+    }
+  }
+
+  const handleCreateAndAssignStudent = async (name: string) => {
+    if (!classDetails?.organisation_id) return
+    setAddingStudent(true)
+    try {
+      const { data: newStudent, error: createError } = await supabase
+        .from('students')
+        .insert({ name, organisation_id: classDetails.organisation_id })
+        .select('id, name')
+        .single()
+
+      if (createError || !newStudent) throw createError
+
+      setStudents(prev => [...prev, newStudent].sort((a, b) => a.name.localeCompare(b.name)))
+      await handleAssignStudent(newStudent.id)
+    } catch (error) {
+      console.error('Error creating student:', error)
+      alert('Failed to create student')
+    } finally {
+      setAddingStudent(false)
+    }
+  }
+
+  const handleRemoveStudent = async (classStudentId: string) => {
+    setRemovingStudentId(classStudentId)
+    try {
+      const { error } = await supabase
+        .from('class_students')
+        .delete()
+        .eq('id', classStudentId)
+
+      if (error) throw error
+
+      setEnrolledStudents(prev => prev.filter(student => student.id !== classStudentId))
+    } catch (error) {
+      console.error('Error removing student:', error)
+      alert('Failed to remove student')
+    } finally {
+      setRemovingStudentId(null)
+    }
+  }
+
+  const handleSaveStudentNotes = async (classStudentId: string, notes: string) => {
+    setSavingStudentId(classStudentId)
+    const cleanedNotes = notes.trim()
+    try {
+      const { error } = await supabase
+        .from('class_students')
+        .update({ notes: cleanedNotes || null })
+        .eq('id', classStudentId)
+
+      if (error) throw error
+      setEnrolledStudents(prev =>
+        prev.map(student =>
+          student.id === classStudentId ? { ...student, notes: cleanedNotes } : student
+        )
+      )
+    } catch (error) {
+      console.error('Error saving student notes:', error)
+      alert('Failed to save notes')
+    } finally {
+      setSavingStudentId(null)
+    }
+  }
 
   useEffect(() => {
     if (!editForm.teacher_id) {
@@ -519,6 +708,123 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Students Enrolled Card */}
+      <div className="bg-white shadow-lg rounded-2xl p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Students Enrolled</h3>
+          <span className="text-sm text-gray-500">{enrolledStudents.length} total</span>
+        </div>
+
+        {isAdmin && (
+          <div className="mb-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <label className="block text-xs font-semibold text-gray-500 mb-2">Add student</label>
+            <div className="flex flex-col gap-2">
+              <input
+                type="text"
+                value={studentSearchQuery}
+                onChange={(e) => setStudentSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && studentSearchQuery.trim()) {
+                    const exactMatch = students.find(
+                      student => student.name.toLowerCase() === studentSearchQuery.trim().toLowerCase()
+                    )
+                    if (exactMatch) {
+                      handleAssignStudent(exactMatch.id)
+                    } else {
+                      handleCreateAndAssignStudent(studentSearchQuery.trim())
+                    }
+                  }
+                }}
+                placeholder="Type a student name and press Enter..."
+                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+              />
+              {filteredStudents.length > 0 && (
+                <div className="rounded-lg border border-gray-200 bg-white p-2 max-h-40 overflow-y-auto">
+                  {filteredStudents.map(student => (
+                    <button
+                      key={student.id}
+                      type="button"
+                      onClick={() => handleAssignStudent(student.id)}
+                      className="w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 text-sm text-gray-700"
+                    >
+                      {student.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <p className="mt-2 text-xs text-gray-500">
+              Press Enter to add. If the student does not exist, a new record will be created.
+            </p>
+            {addingStudent && <p className="mt-2 text-xs text-gray-500">Adding student...</p>}
+          </div>
+        )}
+
+        {enrolledStudents.length === 0 ? (
+          <p className="text-center text-gray-500 py-6">No students enrolled yet</p>
+        ) : (
+          <div className="space-y-3">
+            {enrolledStudents.map((student) => (
+              <div key={student.id} className="rounded-xl border border-gray-200 p-4">
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="font-semibold text-gray-900">{student.name}</p>
+                      {!isAdmin && (
+                        <p className="text-sm text-gray-600 mt-2">
+                          {student.notes ? student.notes : 'No notes added'}
+                        </p>
+                      )}
+                    </div>
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveStudent(student.id)}
+                        className="text-sm text-red-600 hover:text-red-700"
+                        disabled={removingStudentId === student.id}
+                      >
+                        {removingStudentId === student.id ? 'Removing...' : 'Remove'}
+                      </button>
+                    )}
+                  </div>
+
+                  {isAdmin && (
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 mb-2">Notes</label>
+                      <textarea
+                        value={student.notes}
+                        onChange={(e) => {
+                          const nextValue = e.target.value
+                          setEnrolledStudents(prev =>
+                            prev.map(entry =>
+                              entry.id === student.id ? { ...entry, notes: nextValue } : entry
+                            )
+                          )
+                        }}
+                        rows={2}
+                        placeholder="Add a note (e.g., attending 4 lessons only)"
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+                      />
+                      <div className="mt-2 flex items-center justify-between">
+                        <p className="text-xs text-gray-400">Notes are visible to admins and teachers.</p>
+                        <button
+                          type="button"
+                          onClick={() => handleSaveStudentNotes(student.id, student.notes)}
+                          className="text-sm text-brand-primary hover:text-brand-primary-dark"
+                          disabled={savingStudentId === student.id}
+                        >
+                          {savingStudentId === student.id ? 'Saving...' : 'Save note'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Lesson Progress Card */}
