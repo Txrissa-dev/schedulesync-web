@@ -82,6 +82,13 @@ const getTeacherName = (
   return normalized?.full_name || normalized?.name || 'No teacher assigned'
 }
 
+const getStudentName = (
+  student?: { name?: string | null } | { name?: string | null }[] | null
+) => {
+  const normalized = Array.isArray(student) ? student[0] : student
+  return normalized?.name || 'Unnamed student'
+}
+
 export default function ClassDetailsPage({ params }: { params: { classId: string } }) {
   const router = useRouter()
   const [classDetails, setClassDetails] = useState<ClassDetails | null>(null)
@@ -200,7 +207,7 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
           .map((entry: any) => ({
             id: entry.id,
             student_id: entry.student_id,
-            name: entry.students?.name || 'Unnamed student',
+            name: getStudentName(entry.students),
             notes: entry.notes || ''
           }))
           .sort((a: EnrolledStudent, b: EnrolledStudent) => a.name.localeCompare(b.name))
@@ -298,7 +305,7 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
         const newStudent = {
           id: assignment.id,
           student_id: assignment.student_id,
-          name: assignment.students?.name || 'Unnamed student',
+          name: getStudentName(assignment.students),
           notes: assignment.notes || ''
         }
         setEnrolledStudents(prev =>
