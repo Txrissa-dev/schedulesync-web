@@ -34,7 +34,8 @@ export default function SchedulesPage() {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date())
   const [lessonsByDate, setLessonsByDate] = useState<Record<string, string[]>>({})
-
+  const [viewMode, setViewMode] = useState<'admin' | 'teacher'>('admin')
+  
   const getDateKey = (date: Date) => date.toLocaleDateString('en-CA')
 
 
@@ -55,7 +56,9 @@ export default function SchedulesPage() {
         setUserProfile(profile)
 
         if (!profile?.organisation_id) return
-
+        const isAdminProfile = profile?.has_admin_access || profile?.is_super_admin
+        const useTeacherView = !isAdminProfile || viewMode === 'teacher'
+        
         const classSelect = `
           id,
           name,
@@ -79,7 +82,7 @@ export default function SchedulesPage() {
 
         let classesData: any[] | null = null
 
-        if (profile.teacher_id && !profile.has_admin_access) {
+        if (profile.teacher_id && useTeacherView) {
           const { data: primaryClasses } = await baseClassesQuery()
             .eq('teacher_id', profile.teacher_id)
             .order('start_time')
@@ -151,7 +154,7 @@ export default function SchedulesPage() {
     }
 
     fetchSchedules()
-  }, [])
+  }, [viewMode])
 
   useEffect(() => {
     const fetchLessonDates = async () => {
@@ -164,6 +167,9 @@ export default function SchedulesPage() {
         const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
         const monthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
         const classIds = classes.map((cls) => cls.id)
+        const isTeacherView = !userProfile?.has_admin_access && !userProfile?.is_super_admin
+          ? true
+          : viewMode === 'teacher'
         const primaryClassIds = userProfile?.teacher_id
           ? classes
               .filter((cls) => cls.teacher_id === userProfile.teacher_id)
@@ -172,7 +178,7 @@ export default function SchedulesPage() {
 
         const lessonQueries = []
 
-        if (!userProfile?.teacher_id || userProfile?.has_admin_access || userProfile?.is_super_admin) {
+        if (!isTeacherView) {
           lessonQueries.push(
             supabase
               .from('lesson_statuses')
@@ -283,6 +289,8 @@ export default function SchedulesPage() {
   }
 
   const isAdmin = userProfile?.has_admin_access || userProfile?.is_super_admin
+  const canToggleView = isAdmin && userProfile?.teacher_id
+  const isTeacherView = !isAdmin || viewMode === 'teacher'
   const calendarDays = getDaysInMonth(currentDate)
   const selectedDateClasses = selectedDate ? getClassesForDate(selectedDate) : []
 
@@ -301,7 +309,35 @@ export default function SchedulesPage() {
           {MONTH_NAMES[currentDate.getMonth()]} {currentDate.getFullYear()}
         </h1>
         {isAdmin && (
-          <p className="text-sm text-brand-primary mt-1">Admin View - All Teachers</p>
+          <p className="text-sm text-brand-primary mt-1">
+            {isTeacherView ? 'Teacher View - My Classes' : 'Admin View - All Teachers'}
+          </p>
+        )}
+        {canToggleView && (
+          <div className="mt-3 inline-flex rounded-xl border border-gray-200 bg-gray-50 p-1 text-sm">
+            <button
+              type="button"
+              onClick={() => setViewMode('admin')}
+              className={`px-3 py-1.5 rounded-lg transition-colors ${
+                viewMode === 'admin'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Admin view
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('teacher')}
+              className={`px-3 py-1.5 rounded-lg transition-colors ${
+                viewMode === 'teacher'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Teacher view
+            </button>
+          </div>
         )}
       </div>
 
