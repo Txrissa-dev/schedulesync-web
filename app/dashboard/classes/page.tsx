@@ -71,6 +71,7 @@ export default function ClassesPage() {
   const [organisationId, setOrganisationId] = useState<string | null>(null)
  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [classView, setClassView] = useState<'admin' | 'teacher'>('admin')
+  const [collapsedTeachers, setCollapsedTeachers] = useState<Record<string, boolean>>({})
   
   // Add Class Modal States
   const [showAddClass, setShowAddClass] = useState(false)
@@ -409,7 +410,13 @@ export default function ClassesPage() {
 
   subjectEntries.forEach(([, subjectClasses]) => subjectClasses.sort(sortClasses))
   teacherEntries.forEach(([, teacherClasses]) => teacherClasses.sort(sortClasses))
-
+  const toggleTeacherGroup = (teacherLabel: string) => {
+    setCollapsedTeachers((prev) => ({
+      ...prev,
+      [teacherLabel]: !prev[teacherLabel]
+    }))
+  }
+  
   return (
     <div className="px-4 py-6 sm:px-0">
       {/* Header */}
@@ -478,97 +485,114 @@ export default function ClassesPage() {
           {(isAdminView ? teacherEntries : subjectEntries).map(([groupLabel, groupClasses]) => (
             <div key={groupLabel}>
               {isAdminView ? (
-                <h3 className="text-base font-bold text-gray-900 mb-3 px-1">
-                  {groupLabel}
-                </h3>
+                <button
+                  type="button"
+                  onClick={() => toggleTeacherGroup(groupLabel)}
+                  aria-expanded={!collapsedTeachers[groupLabel]}
+                  className="flex items-center gap-2 text-base font-bold text-gray-900 mb-3 px-1"
+                >
+                  <svg
+                    className={`w-4 h-4 text-gray-500 transition-transform ${
+                      collapsedTeachers[groupLabel] ? '-rotate-90' : ''
+                    }`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                  <span>{groupLabel}</span>
+                </button>
               ) : (
                 <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3 px-1">
                   {groupLabel}
                 </h3>
               )}
-              <div className="space-y-3">
-                {groupClasses.map((cls) => {
-                  const progress = cls.effective_total_lessons
-                    ? (cls.completed_lessons / cls.effective_total_lessons) * 100
-                    : 0
-                  const locationLabel =
-                    [cls.room, cls.centre?.name].filter(Boolean).join(' • ') || 'No location'
-                    
-              return (
-                    <Link
-                      key={cls.id}
-                      href={`/dashboard/classes/${cls.id}`}
-                      className="block"
-                    >
-                      <div className="bg-white rounded-xl p-5 border border-gray-200 hover:border-brand-primary hover:shadow-md transition-all">
-                        <div className="flex items-start justify-between mb-3">
-                          <div>
-                            <p className="text-sm font-semibold text-gray-900">{cls.subject}</p>
-                            <h4 className="text-lg font-semibold text-gray-900">{cls.name}</h4>
-                          </div>
-                          <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
-                        </div>
-
-                        <div className="flex items-center gap-3 text-sm text-gray-600 mb-3">
-                          <div className="flex items-center gap-1.5">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                            <span>{daysOfWeekShort[cls.day_of_week]}, {cls.start_time} - {cls.end_time}</span>
-                          </div>
-                        </div>
-
-                        {!isAdminView && (
-                          <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A9 9 0 1119 9a4 4 0 00-7.293 7.293M15 21H9a4 4 0 010-8h6a4 4 0 010 8z" />
-                            </svg>
-                            <span>{getTeacherLabel(cls.teacher)}</span>
-                          </div>
-                        )}
-                        
-                        <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                          </svg>
-                          <span>{locationLabel}</span>
-                        </div>
-
-                        {/* Lesson Progress */}
-                        {cls.effective_total_lessons > 0 && (
-                          <div className="mb-4">
-                            <div className="flex items-center justify-between text-sm mb-1.5">
-                              <span className="text-gray-600">Lesson Progress</span>
-                              <span className="font-medium text-brand-secondary">
-                                {cls.completed_lessons}/{cls.effective_total_lessons}
-                              </span>
+              {!isAdminView || !collapsedTeachers[groupLabel] ? (
+                <div className="space-y-3">
+                  {groupClasses.map((cls) => {
+                    const progress = cls.effective_total_lessons
+                      ? (cls.completed_lessons / cls.effective_total_lessons) * 100
+                      : 0
+                    const locationLabel =
+                      [cls.room, cls.centre?.name].filter(Boolean).join(' • ') || 'No location'
+                      
+                return (
+                      <Link
+                        key={cls.id}
+                        href={`/dashboard/classes/${cls.id}`}
+                        className="block"
+                      >
+                        <div className="bg-white rounded-xl p-5 border border-gray-200 hover:border-brand-primary hover:shadow-md transition-all">
+                          <div className="flex items-start justify-between mb-3">
+                            <div>
+                              <p className="text-sm font-semibold text-gray-900">{cls.subject}</p>
+                              <h4 className="text-lg font-semibold text-gray-900">{cls.name}</h4>
                             </div>
-                            <div className="w-full bg-gray-200 rounded-full h-2">
-                              <div
-                                className="bg-brand-secondary h-2 rounded-full transition-all"
-                                style={{ width: `${progress}%` }}
-                              />
+                            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                          </div>
+
+                          <div className="flex items-center gap-3 text-sm text-gray-600 mb-3">
+                            <div className="flex items-center gap-1.5">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                              <span>{daysOfWeekShort[cls.day_of_week]}, {cls.start_time} - {cls.end_time}</span>
                             </div>
                           </div>
-                        )}
 
-                        {/* Student Count */}
-                        <div className="flex items-center gap-2 text-sm bg-gray-100 rounded-lg px-3 py-2 w-fit">
-                          <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                          </svg>
-                          <span className="font-medium text-gray-700">
-                            {cls.student_count} enrolled
-                          </span>
+                          {!isAdminView && (
+                            <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A9 9 0 1119 9a4 4 0 00-7.293 7.293M15 21H9a4 4 0 010-8h6a4 4 0 010 8z" />
+                              </svg>
+                              <span>{getTeacherLabel(cls.teacher)}</span>
+                            </div>
+                          )}
+                          
+                          <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            <span>{locationLabel}</span>
+                          </div>
+
+                          {/* Lesson Progress */}
+                          {cls.effective_total_lessons > 0 && (
+                            <div className="mb-4">
+                              <div className="flex items-center justify-between text-sm mb-1.5">
+                                <span className="text-gray-600">Lesson Progress</span>
+                                <span className="font-medium text-brand-secondary">
+                                  {cls.completed_lessons}/{cls.effective_total_lessons}
+                                </span>
+                              </div>
+                              <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div
+                                  className="bg-brand-secondary h-2 rounded-full transition-all"
+                                  style={{ width: `${progress}%` }}
+                                />
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Student Count */}
+                          <div className="flex items-center gap-2 text-sm bg-gray-100 rounded-lg px-3 py-2 w-fit">
+                            <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                            </svg>
+                            <span className="font-medium text-gray-700">
+                              {cls.student_count} enrolled
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    </Link>
-                  )
-                })}
-              </div>
+                      </Link>
+                    )
+                  })}
+                </div>
+              ) : null}
             </div>
           ))}
         </div>
