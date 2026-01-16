@@ -410,13 +410,28 @@ export default function ClassesPage() {
 
   subjectEntries.forEach(([, subjectClasses]) => subjectClasses.sort(sortClasses))
   teacherEntries.forEach(([, teacherClasses]) => teacherClasses.sort(sortClasses))
+
+  useEffect(() => {
+    if (!isAdminView) return
+    setCollapsedTeachers((prev) => {
+      let changed = false
+      const next = { ...prev }
+      teacherEntries.forEach(([teacherLabel]) => {
+        if (next[teacherLabel] === undefined) {
+          next[teacherLabel] = true
+          changed = true
+        }
+      })
+      return changed ? next : prev
+    })
+  }, [isAdminView, teacherEntries])
   const toggleTeacherGroup = (teacherLabel: string) => {
     setCollapsedTeachers((prev) => ({
       ...prev,
       [teacherLabel]: !prev[teacherLabel]
     }))
   }
-  
+
   return (
     <div className="px-4 py-6 sm:px-0">
       {/* Header */}
