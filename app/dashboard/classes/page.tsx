@@ -379,10 +379,6 @@ export default function ClassesPage() {
     }
   }
 
-  if (loading) {
-    return <div className="text-center py-12">Loading classes...</div>
-  }
-
   const isTeacher = userProfile?.teacher_id !== null
   const isAdminView = Boolean(isAdmin && (!isTeacher || classView === 'admin'))
   const isTeacherView = Boolean(isTeacher && (!isAdmin || classView === 'teacher'))
@@ -430,6 +426,10 @@ export default function ClassesPage() {
       ...prev,
       [teacherLabel]: !prev[teacherLabel]
     }))
+  }
+
+  if (loading) {
+    return <div className="text-center py-12">Loading classes...</div>
   }
 
   return (
