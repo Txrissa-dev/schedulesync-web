@@ -820,7 +820,10 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
           <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Students Enrolled</h3>
           <span className="text-sm text-gray-500">{enrolledStudents.length} total</span>
         </div>
-
+        {isAdmin && supportsStudentNotes && (
+          <p className="mb-4 text-xs text-gray-400">Notes are visible to admins and teachers.</p>
+        )}
+        
         {isAdmin && (
           <div className="mb-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
             <label className="block text-xs font-semibold text-gray-500 mb-2">Add student</label>
@@ -916,8 +919,7 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
                   </div>
 
                   {isAdmin && supportsStudentNotes && (
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="text-xs text-gray-400">Notes are visible to admins and teachers.</p>
+                    <div className="flex items-center justify-end gap-3">
                       <button
                         type="button"
                         onClick={() => handleSaveStudentNotes(student.class_student_id || null, student.student_id, student.notes)}
