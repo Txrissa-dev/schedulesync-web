@@ -386,6 +386,9 @@ export default function ClassesPage() {
   const isAdminView = Boolean(isAdmin && (!isTeacher || classView === 'admin'))
   const isTeacherView = Boolean(isTeacher && (!isAdmin || classView === 'teacher'))
 
+  const sortClasses = (a: Class, b: Class) =>
+    a.subject.localeCompare(b.subject) || a.name.localeCompare(b.name)
+
   // Group classes by subject (like iOS app)
   const classesBySubject = classes.reduce((acc, cls) => {
     const subject = cls.subject.toUpperCase()
@@ -393,6 +396,19 @@ export default function ClassesPage() {
     acc[subject].push(cls)
     return acc
   }, {} as Record<string, Class[]>)
+
+  const classesByTeacher = classes.reduce((acc, cls) => {
+    const teacherLabel = getTeacherLabel(cls.teacher)
+    if (!acc[teacherLabel]) acc[teacherLabel] = []
+    acc[teacherLabel].push(cls)
+    return acc
+  }, {} as Record<string, Class[]>)
+
+  const subjectEntries = Object.entries(classesBySubject)
+  const teacherEntries = Object.entries(classesByTeacher).sort(([a], [b]) => a.localeCompare(b))
+
+  subjectEntries.forEach(([, subjectClasses]) => subjectClasses.sort(sortClasses))
+  teacherEntries.forEach(([, teacherClasses]) => teacherClasses.sort(sortClasses))
 
   return (
     <div className="px-4 py-6 sm:px-0">
@@ -459,13 +475,19 @@ export default function ClassesPage() {
         </div>
       ) : (
         <div className="space-y-6">
-          {Object.entries(classesBySubject).map(([subject, subjectClasses]) => (
-            <div key={subject}>
-              <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3 px-1">
-                {subject}
-              </h3>
+          {(isAdminView ? teacherEntries : subjectEntries).map(([groupLabel, groupClasses]) => (
+            <div key={groupLabel}>
+              {isAdminView ? (
+                <h3 className="text-base font-bold text-gray-900 mb-3 px-1">
+                  {groupLabel}
+                </h3>
+              ) : (
+                <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3 px-1">
+                  {groupLabel}
+                </h3>
+              )}
               <div className="space-y-3">
-                {subjectClasses.map((cls) => {
+                {groupClasses.map((cls) => {
                   const progress = cls.effective_total_lessons
                     ? (cls.completed_lessons / cls.effective_total_lessons) * 100
                     : 0
