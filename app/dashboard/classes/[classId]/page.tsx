@@ -107,6 +107,7 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
   const [showEditModal, setShowEditModal] = useState(false)
   const [editModalFocus, setEditModalFocus] = useState<'coTeacher' | null>(null)
   const [savingEdits, setSavingEdits] = useState(false)
+  const [deletingClass, setDeletingClass] = useState(false)
   const [teachers, setTeachers] = useState<TeacherOption[]>([])
   const [centres, setCentres] = useState<CentreOption[]>([])
   const [availableSubjects, setAvailableSubjects] = useState<string[]>([])
@@ -689,6 +690,43 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
     }
   }
 
+  const handleDeleteClass = async () => {
+    if (!classDetails || deletingClass) return
+    const confirmed = window.confirm('Are you sure you want to delete this class? This will remove all lessons and enrolled students.')
+    if (!confirmed) return
+
+    setDeletingClass(true)
+    try {
+      const { error: lessonDeleteError } = await supabase
+        .from('lesson_statuses')
+        .delete()
+        .eq('class_id', classDetails.id)
+
+      if (lessonDeleteError) throw lessonDeleteError
+
+      const { error: studentDeleteError } = await supabase
+        .from('class_students')
+        .delete()
+        .eq('class_id', classDetails.id)
+
+      if (studentDeleteError) throw studentDeleteError
+
+      const { error: classDeleteError } = await supabase
+        .from('classes')
+        .delete()
+        .eq('id', classDetails.id)
+
+      if (classDeleteError) throw classDeleteError
+
+      router.push('/dashboard/classes')
+    } catch (error) {
+      console.error('Error deleting class:', error)
+      alert('Failed to delete class')
+    } finally {
+      setDeletingClass(false)
+    }
+  }
+
   if (loading) {
     return <div className="text-center py-12">Loading class details...</div>
   }
@@ -730,17 +768,32 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
           Back
         </button>
         <h2 className="text-lg font-semibold text-brand-primary">Class Details</h2>
-        <button
-          onClick={() => {
-            setEditModalFocus(null)
-            setShowEditModal(true)
-          }}
-          className="p-2 text-brand-secondary hover:text-brand-secondary-dark"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-          </svg>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              setEditModalFocus(null)
+              setShowEditModal(true)
+            }}
+            className="p-2 text-brand-secondary hover:text-brand-secondary-dark"
+            aria-label="Edit class"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+          </button>
+          {isAdmin && (
+            <button
+              onClick={handleDeleteClass}
+              className="p-2 text-red-500 hover:text-red-600 disabled:opacity-60"
+              aria-label="Delete class"
+              disabled={deletingClass}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3m-4 0h14" />
+              </svg>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Class Info Card */}
