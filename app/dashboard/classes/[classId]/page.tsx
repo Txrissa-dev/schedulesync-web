@@ -875,12 +875,14 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
                 <div className="flex flex-col gap-3">
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <p className="font-semibold text-gray-900">{student.name}</p>
-                      {!isAdmin && supportsStudentNotes && (
-                        <p className="text-sm text-gray-600 mt-2">
-                          {student.notes ? student.notes : 'No notes added'}
-                        </p>
-                      )}
+                      <p className="flex flex-wrap items-center gap-2 font-semibold text-gray-900">
+                        <span>{student.name}</span>
+                        {!isAdmin && supportsStudentNotes && student.notes?.trim() && (
+                          <span className="text-sm font-normal text-gray-400">
+                            [{student.notes.trim()}]
+                          </span>
+                        )}
+                      </p>
                     </div>
                     {isAdmin && (
                       <button
