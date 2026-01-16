@@ -907,29 +907,28 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
                       )}
                     </div>
                     {isAdmin && (
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveStudent(student.class_student_id || student.student_id, student.student_id)}
-                        className="text-sm text-red-600 hover:text-red-700"
-                        disabled={removingStudentId === (student.class_student_id || student.student_id)}
-                      >
-                        {removingStudentId === (student.class_student_id || student.student_id) ? 'Removing...' : 'Remove'}
-                      </button>
+                      <div className="flex items-center gap-3">
+                        {supportsStudentNotes && (
+                          <button
+                            type="button"
+                            onClick={() => handleSaveStudentNotes(student.class_student_id || null, student.student_id, student.notes)}
+                            className="text-sm text-brand-primary hover:text-brand-primary-dark"
+                            disabled={savingStudentId === (student.class_student_id || student.student_id)}
+                          >
+                            {savingStudentId === (student.class_student_id || student.student_id) ? 'Saving...' : 'Save note'}
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveStudent(student.class_student_id || student.student_id, student.student_id)}
+                          className="text-sm text-red-600 hover:text-red-700"
+                          disabled={removingStudentId === (student.class_student_id || student.student_id)}
+                        >
+                          {removingStudentId === (student.class_student_id || student.student_id) ? 'Removing...' : 'Remove'}
+                        </button>
+                      </div>
                     )}
                   </div>
-
-                  {isAdmin && supportsStudentNotes && (
-                    <div className="flex items-center justify-end gap-3">
-                      <button
-                        type="button"
-                        onClick={() => handleSaveStudentNotes(student.class_student_id || null, student.student_id, student.notes)}
-                        className="text-sm text-brand-primary hover:text-brand-primary-dark"
-                        disabled={savingStudentId === (student.class_student_id || student.student_id)}
-                      >
-                        {savingStudentId === (student.class_student_id || student.student_id) ? 'Saving...' : 'Save note'}
-                      </button>
-                    </div>
-                  )}
                 </div>
               </div>
             ))}
