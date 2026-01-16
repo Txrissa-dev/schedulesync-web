@@ -873,8 +873,8 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
             {enrolledStudents.map((student) => (
               <div key={student.id} className="rounded-xl border border-gray-200 p-4">
                 <div className="flex flex-col gap-3">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div className="flex flex-1 flex-wrap items-center gap-3">
                       <p className="flex flex-wrap items-center gap-2 font-semibold text-gray-900">
                         <span>{student.name}</span>
                         {!isAdmin && supportsStudentNotes && student.notes?.trim() && (
@@ -883,6 +883,25 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
                           </span>
                         )}
                       </p>
+                      {isAdmin && supportsStudentNotes && (
+                        <div className="flex items-center gap-2">
+                          <label className="text-xs font-semibold text-gray-500">Notes</label>
+                          <input
+                            type="text"
+                            value={student.notes}
+                            onChange={(e) => {
+                              const nextValue = e.target.value
+                              setEnrolledStudents(prev =>
+                                prev.map(entry =>
+                                  entry.id === student.id ? { ...entry, notes: nextValue } : entry
+                                )
+                              )
+                            }}
+                            placeholder="Add a note"
+                            className="w-44 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-secondary md:w-56"
+                          />
+                        </div>
+                      )}
                     </div>
                     {isAdmin && (
                       <button
@@ -897,33 +916,16 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
                   </div>
 
                   {isAdmin && supportsStudentNotes && (
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-500 mb-2">Notes</label>
-                      <textarea
-                        value={student.notes}
-                        onChange={(e) => {
-                          const nextValue = e.target.value
-                          setEnrolledStudents(prev =>
-                            prev.map(entry =>
-                              entry.id === student.id ? { ...entry, notes: nextValue } : entry
-                            )
-                          )
-                        }}
-                        rows={2}
-                        placeholder="Add a note (e.g., attending 4 lessons only)"
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-secondary"
-                      />
-                      <div className="mt-2 flex items-center justify-between">
-                        <p className="text-xs text-gray-400">Notes are visible to admins and teachers.</p>
-                        <button
-                          type="button"
-                          onClick={() => handleSaveStudentNotes(student.class_student_id || null, student.student_id, student.notes)}
-                          className="text-sm text-brand-primary hover:text-brand-primary-dark"
-                          disabled={savingStudentId === (student.class_student_id || student.student_id)}
-                        >
-                          {savingStudentId === (student.class_student_id || student.student_id) ? 'Saving...' : 'Save note'}
-                        </button>
-                      </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-xs text-gray-400">Notes are visible to admins and teachers.</p>
+                      <button
+                        type="button"
+                        onClick={() => handleSaveStudentNotes(student.class_student_id || null, student.student_id, student.notes)}
+                        className="text-sm text-brand-primary hover:text-brand-primary-dark"
+                        disabled={savingStudentId === (student.class_student_id || student.student_id)}
+                      >
+                        {savingStudentId === (student.class_student_id || student.student_id) ? 'Saving...' : 'Save note'}
+                      </button>
                     </div>
                   )}
                 </div>
