@@ -56,10 +56,11 @@ interface EnrolledStudent {
   student_id: string
   name: string
   notes: string
+  class_student_id?: string | null
 }
 
 interface ClassStudentRow {
-  id: string
+  id?: string
   student_id: string
   notes?: string | null
   students?: { id: string; name: string } | { id: string; name: string }[] | null
@@ -123,6 +124,7 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
   const [addingStudent, setAddingStudent] = useState(false)
   const [removingStudentId, setRemovingStudentId] = useState<string | null>(null)
   const [supportsStudentNotes, setSupportsStudentNotes] = useState(true)
+  const [supportsClassStudentId, setSupportsClassStudentId] = useState(true)
   const [editForm, setEditForm] = useState({
     name: '',
     subject: '',
@@ -168,10 +170,16 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
     return error.code === '42703' || String(error.message || '').toLowerCase().includes('notes')
   }
 
-  const fetchClassStudents = async (includeNotes: boolean) => {
+  const isMissingIdColumn = (error: any) => {
+    if (!error) return false
+    return error.code === '42703' || String(error.message || '').toLowerCase().includes('class_students.id')
+  }
+
+  const fetchClassStudents = async (includeNotes: boolean, includeId: boolean) => {
+    const baseFields = includeId ? 'id, student_id' : 'student_id'
     const selectFields = includeNotes
-      ? 'id, student_id, notes, students:student_id (id, name)'
-      : 'id, student_id, students:student_id (id, name)'
+      ? `${baseFields}, notes, students:student_id (id, name)`
+      : `${baseFields}, students:student_id (id, name)`
     const response = await supabase
       .from('class_students')
       .select(selectFields)
@@ -221,26 +229,43 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
         setLessons(lessonsData)
       }
 
-      const { data: classStudents, error: classStudentsError } = await fetchClassStudents(true)
+      let includeId = true
+      let includeNotes = true
+      let { data: classStudents, error: classStudentsError } = await fetchClassStudents(includeNotes, includeId)
       let resolvedStudents = classStudents
 
+      if (classStudentsError && isMissingIdColumn(classStudentsError)) {
+        includeId = false
+        setSupportsClassStudentId(false)
+        const fallback = await fetchClassStudents(includeNotes, includeId)
+        resolvedStudents = fallback.data
+        classStudentsError = fallback.error
+      } else {
+        setSupportsClassStudentId(true)
+      }
+
       if (classStudentsError && isMissingNotesColumn(classStudentsError)) {
+        includeNotes = false
         setSupportsStudentNotes(false)
-        const { data: fallbackStudents } = await fetchClassStudents(false)
-        resolvedStudents = fallbackStudents
-      } else if (classStudentsError) {
-        throw classStudentsError
+        const fallback = await fetchClassStudents(includeNotes, includeId)
+        resolvedStudents = fallback.data
+        classStudentsError = fallback.error
       } else {
         setSupportsStudentNotes(true)
+      }
+
+      if (classStudentsError) {
+        throw classStudentsError
       }
 
       if (resolvedStudents) {
         const normalized = resolvedStudents
           .map((entry: any) => ({
-            id: entry.id,
+            id: entry.student_id,
             student_id: entry.student_id,
             name: getStudentName(entry.students),
-            notes: entry.notes || ''
+            notes: entry.notes || '',
+            class_student_id: entry.id || null
           }))
           .sort((a: EnrolledStudent, b: EnrolledStudent) => a.name.localeCompare(b.name))
         setEnrolledStudents(normalized)
@@ -325,10 +350,11 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
     }
     setAddingStudent(true)
     try {
-      const insertSelect = async (includeNotes: boolean) => {
+      const insertSelect = async (includeNotes: boolean, includeId: boolean) => {
+        const baseFields = includeId ? 'id, student_id' : 'student_id'
         const selectFields = includeNotes
-          ? 'id, student_id, notes, students:student_id (id, name)'
-          : 'id, student_id, students:student_id (id, name)'
+          ? `${baseFields}, notes, students:student_id (id, name)`
+          : `${baseFields}, students:student_id (id, name)`
         const response = await supabase
           .from('class_students')
           .insert({ class_id: classDetails.id, student_id: studentId })
@@ -337,24 +363,40 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
         return response as { data: ClassStudentRow | null; error: any }
       }
 
-      let { data: assignment, error } = await insertSelect(true)
+      let includeId = true
+      let includeNotes = true
+      let { data: assignment, error } = await insertSelect(includeNotes, includeId)
 
-      if (error && isMissingNotesColumn(error)) {
-        setSupportsStudentNotes(false)
-        const fallback = await insertSelect(false)
+      if (error && isMissingIdColumn(error)) {
+        includeId = false
+        setSupportsClassStudentId(false)
+        const fallback = await insertSelect(includeNotes, includeId)
         assignment = fallback.data
         error = fallback.error
+      } else {
+        setSupportsClassStudentId(true)
       }
-      
+
+      if (error && isMissingNotesColumn(error)) {
+        includeNotes = false
+        setSupportsStudentNotes(false)
+        const fallback = await insertSelect(includeNotes, includeId)
+        assignment = fallback.data
+        error = fallback.error
+      } else {
+        setSupportsStudentNotes(true)
+      }
+
       if (error) throw error
 
       if (assignment) {
         const resolvedAssignment = assignment as ClassStudentRow
         const newStudent = {
-          id: resolvedAssignment.id,
+          id: resolvedAssignment.student_id,
           student_id: resolvedAssignment.student_id,
           name: getStudentName(resolvedAssignment.students),
-          notes: resolvedAssignment.notes || ''
+          notes: resolvedAssignment.notes || '',
+          class_student_id: resolvedAssignment.id || null
         }
         setEnrolledStudents(prev =>
           [...prev, newStudent].sort((a, b) => a.name.localeCompare(b.name))
@@ -393,17 +435,20 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
     }
   }
 
-  const handleRemoveStudent = async (classStudentId: string) => {
+  const handleRemoveStudent = async (classStudentId: string, studentId: string) => {
     setRemovingStudentId(classStudentId)
     try {
-      const { error } = await supabase
+      const deleteQuery = supabase
         .from('class_students')
         .delete()
-        .eq('id', classStudentId)
+
+      const { error } = supportsClassStudentId
+        ? await deleteQuery.eq('id', classStudentId)
+        : await deleteQuery.eq('class_id', classDetails?.id).eq('student_id', studentId)
 
       if (error) throw error
 
-      setEnrolledStudents(prev => prev.filter(student => student.id !== classStudentId))
+      setEnrolledStudents(prev => prev.filter(student => student.student_id !== studentId))
     } catch (error) {
       console.error('Error removing student:', error)
       alert('Failed to remove student')
@@ -412,20 +457,23 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
     }
   }
 
-  const handleSaveStudentNotes = async (classStudentId: string, notes: string) => {
+  const handleSaveStudentNotes = async (classStudentId: string | null, studentId: string, notes: string) => {
     if (!supportsStudentNotes) return
-    setSavingStudentId(classStudentId)
+    setSavingStudentId(classStudentId ?? studentId)
     const cleanedNotes = notes.trim()
     try {
-      const { error } = await supabase
+      const updateQuery = supabase
         .from('class_students')
         .update({ notes: cleanedNotes || null })
-        .eq('id', classStudentId)
+
+      const { error } = supportsClassStudentId
+        ? await updateQuery.eq('id', classStudentId)
+        : await updateQuery.eq('class_id', classDetails?.id).eq('student_id', studentId)
 
       if (error) throw error
       setEnrolledStudents(prev =>
         prev.map(student =>
-          student.id === classStudentId ? { ...student, notes: cleanedNotes } : student
+          student.student_id === studentId ? { ...student, notes: cleanedNotes } : student
         )
       )
     } catch (error) {
@@ -837,11 +885,11 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
                     {isAdmin && (
                       <button
                         type="button"
-                        onClick={() => handleRemoveStudent(student.id)}
+                        onClick={() => handleRemoveStudent(student.class_student_id || student.student_id, student.student_id)}
                         className="text-sm text-red-600 hover:text-red-700"
-                        disabled={removingStudentId === student.id}
+                        disabled={removingStudentId === (student.class_student_id || student.student_id)}
                       >
-                        {removingStudentId === student.id ? 'Removing...' : 'Remove'}
+                        {removingStudentId === (student.class_student_id || student.student_id) ? 'Removing...' : 'Remove'}
                       </button>
                     )}
                   </div>
@@ -867,11 +915,11 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
                         <p className="text-xs text-gray-400">Notes are visible to admins and teachers.</p>
                         <button
                           type="button"
-                          onClick={() => handleSaveStudentNotes(student.id, student.notes)}
+                          onClick={() => handleSaveStudentNotes(student.class_student_id || null, student.student_id, student.notes)}
                           className="text-sm text-brand-primary hover:text-brand-primary-dark"
-                          disabled={savingStudentId === student.id}
+                          disabled={savingStudentId === (student.class_student_id || student.student_id)}
                         >
-                          {savingStudentId === student.id ? 'Saving...' : 'Save note'}
+                          {savingStudentId === (student.class_student_id || student.student_id) ? 'Saving...' : 'Save note'}
                         </button>
                       </div>
                     </div>
