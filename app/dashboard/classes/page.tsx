@@ -491,16 +491,21 @@ export default function ClassesPage() {
                   const progress = cls.effective_total_lessons
                     ? (cls.completed_lessons / cls.effective_total_lessons) * 100
                     : 0
-
-                  return (
+                  const locationLabel =
+                    [cls.room, cls.centre?.name].filter(Boolean).join(' • ') || 'No location'
+                    
+              return (
                     <Link
                       key={cls.id}
                       href={`/dashboard/classes/${cls.id}`}
                       className="block"
                     >
                       <div className="bg-white rounded-xl p-5 border border-gray-200 hover:border-brand-primary hover:shadow-md transition-all">
-                        <div className="flex items-center justify-between mb-3">
-                          <h4 className="text-lg font-semibold text-gray-900">{cls.name}</h4>
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <p className="text-sm font-semibold text-gray-900">{cls.subject}</p>
+                            <h4 className="text-lg font-semibold text-gray-900">{cls.name}</h4>
+                          </div>
                           <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                           </svg>
@@ -515,19 +520,21 @@ export default function ClassesPage() {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A9 9 0 1119 9a4 4 0 00-7.293 7.293M15 21H9a4 4 0 010-8h6a4 4 0 010 8z" />
-                          </svg>
-                          <span>{getTeacherLabel(cls.teacher)}</span>
-                        </div>
+                        {!isAdminView && (
+                          <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A9 9 0 1119 9a4 4 0 00-7.293 7.293M15 21H9a4 4 0 010-8h6a4 4 0 010 8z" />
+                            </svg>
+                            <span>{getTeacherLabel(cls.teacher)}</span>
+                          </div>
+                        )}
                         
                         <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                           </svg>
-                          <span>{cls.centre?.name || 'No centre'}</span>
+                          <span>{locationLabel}</span>
                         </div>
 
                         {/* Lesson Progress */}
@@ -554,7 +561,7 @@ export default function ClassesPage() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                           </svg>
                           <span className="font-medium text-gray-700">
-                            {cls.student_count}/{cls.student_count} enrolled
+                            {cls.student_count} enrolled
                           </span>
                         </div>
                       </div>
