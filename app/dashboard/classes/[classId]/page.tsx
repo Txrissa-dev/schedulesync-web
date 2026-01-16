@@ -58,6 +58,13 @@ interface EnrolledStudent {
   notes: string
 }
 
+interface ClassStudentRow {
+  id: string
+  student_id: string
+  notes?: string | null
+  students?: { id: string; name: string } | { id: string; name: string }[] | null
+}
+
 interface UserProfile {
   organisation_id: string | null
   has_admin_access: boolean
@@ -165,10 +172,11 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
     const selectFields = includeNotes
       ? 'id, student_id, notes, students:student_id (id, name)'
       : 'id, student_id, students:student_id (id, name)'
-    return supabase
+    const response = await supabase
       .from('class_students')
       .select(selectFields)
       .eq('class_id', params.classId)
+    return response as { data: ClassStudentRow[] | null; error: any }
   }
 
   const fetchClassData = async () => {
@@ -321,11 +329,12 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
         const selectFields = includeNotes
           ? 'id, student_id, notes, students:student_id (id, name)'
           : 'id, student_id, students:student_id (id, name)'
-        return supabase
+        const response = await supabase
           .from('class_students')
           .insert({ class_id: classDetails.id, student_id: studentId })
           .select(selectFields)
           .single()
+        return response as { data: ClassStudentRow | null; error: any }
       }
 
       let { data: assignment, error } = await insertSelect(true)
@@ -336,15 +345,16 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
         assignment = fallback.data
         error = fallback.error
       }
-
+      
       if (error) throw error
 
       if (assignment) {
+        const resolvedAssignment = assignment as ClassStudentRow
         const newStudent = {
-          id: assignment.id,
-          student_id: assignment.student_id,
-          name: getStudentName(assignment.students),
-          notes: assignment.notes || ''
+          id: resolvedAssignment.id,
+          student_id: resolvedAssignment.student_id,
+          name: getStudentName(resolvedAssignment.students),
+          notes: resolvedAssignment.notes || ''
         }
         setEnrolledStudents(prev =>
           [...prev, newStudent].sort((a, b) => a.name.localeCompare(b.name))
