@@ -116,6 +116,7 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
     { date: '', teacher_id: '' }
   ])
   const coTeacherSectionRef = useRef<HTMLDivElement | null>(null)
+  const [firstLessonDate, setFirstLessonDate] = useState('')
   const [enrolledStudents, setEnrolledStudents] = useState<EnrolledStudent[]>([])
   const [students, setStudents] = useState<StudentOption[]>([])
   const [studentSearchQuery, setStudentSearchQuery] = useState('')
@@ -135,7 +136,8 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
     start_time: '',
     end_time: '',
     room: '',
-    total_lessons: ''
+    total_lessons: '',
+    start_date: ''
   })
   
   useEffect(() => {
@@ -228,6 +230,9 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
 
       if (lessonsData) {
         setLessons(lessonsData)
+        setFirstLessonDate(lessonsData[0]?.scheduled_date || '')
+      } else {
+        setFirstLessonDate('')
       }
 
       let includeId = true
@@ -289,9 +294,12 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
       start_time: classDetails.start_time || '',
       end_time: classDetails.end_time || '',
       room: classDetails.room || '',
+      total_lessons: classDetails.total_lessons?.toString() || '',
+      start_date: firstLessonDate || ''
       total_lessons: classDetails.total_lessons?.toString() || ''
     })
     setNewLessonDates([''])
+  }, [classDetails, firstLessonDate])
     setCoTeacherAssignments([{ date: '', teacher_id: '' }])
   }, [classDetails])
 
@@ -639,6 +647,28 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
           total_lessons: totalLessonsToSave || null
         })
         .eq('id', classDetails.id)
+
+      if (editForm.start_date && editForm.start_date !== firstLessonDate) {
+        const baseDate = new Date(editForm.start_date)
+        const scheduledLessons = lessons
+          .filter((lesson) => lesson.status === 'scheduled')
+          .sort((a, b) => a.lesson_number - b.lesson_number)
+
+        const updateRequests = scheduledLessons.map((lesson) => {
+          const nextDate = new Date(baseDate)
+          nextDate.setDate(baseDate.getDate() + (lesson.lesson_number - 1) * 7)
+          const scheduledDate = nextDate.toISOString().split('T')[0]
+
+          return supabase
+            .from('lesson_statuses')
+            .update({ scheduled_date: scheduledDate })
+            .eq('id', lesson.id)
+        })
+
+        const scheduleUpdates = await Promise.all(updateRequests)
+        const scheduleError = scheduleUpdates.find((result) => result.error)?.error
+        if (scheduleError) throw scheduleError
+      }
 
       if (updateError) throw updateError
 
@@ -1317,6 +1347,18 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
                     className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
                   />
                 </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">First Lesson Date</label>
+                  <input
+                    type="date"
+                    value={editForm.start_date}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, start_date: e.target.value }))}
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+                  />
+                </div>
+              </div>
+
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
