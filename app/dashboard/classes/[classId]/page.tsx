@@ -295,7 +295,7 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
       end_time: classDetails.end_time || '',
       room: classDetails.room || '',
       total_lessons: classDetails.total_lessons?.toString() || '',
-      start_date: firstLessonDate || '',
+      start_date: firstLessonDate || ''
       total_lessons: classDetails.total_lessons?.toString() || ''
     })
     setNewLessonDates([''])
