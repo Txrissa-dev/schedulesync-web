@@ -647,7 +647,16 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
         .eq('id', classDetails.id)
 
       if (editForm.start_date && editForm.start_date !== firstLessonDate) {
-        const baseDate = new Date(editForm.start_date)
+        const isValidDateString = /^\d{4}-\d{2}-\d{2}$/.test(editForm.start_date)
+        if (!isValidDateString) {
+          alert('Please enter a valid start date.')
+          return
+        }
+        const baseDate = new Date(`${editForm.start_date}T00:00:00`)
+        if (Number.isNaN(baseDate.getTime())) {
+          alert('Please enter a valid start date.')
+          return
+        }
         const scheduledLessons = lessons
           .filter((lesson) => lesson.status === 'scheduled')
           .sort((a, b) => a.lesson_number - b.lesson_number)
@@ -655,7 +664,7 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
         const updateRequests = scheduledLessons.map((lesson) => {
           const nextDate = new Date(baseDate)
           nextDate.setDate(baseDate.getDate() + (lesson.lesson_number - 1) * 7)
-          const scheduledDate = nextDate.toISOString().split('T')[0]
+          const scheduledDate = nextDate.toISOString().slice(0, 10)
 
           return supabase
             .from('lesson_statuses')
