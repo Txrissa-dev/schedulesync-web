@@ -19,7 +19,7 @@ interface Teacher {
   full_name: string
   email: string | null
   phone: string | null
-  subjects: string | null
+  subjects: string[] | null
   organisation_id: string | null
 }
 
@@ -74,6 +74,19 @@ const isMissingColumnError = (error: any, column: string) => {
   if (typeof error.message === 'string' && error.message.includes(`Could not find the '${column}' column`)) return true
   if (typeof error.details === 'string' && error.details.includes(`column "${column}"`)) return true
   return false
+}
+
+const normalizeSubjectsToString = (subjects: Teacher['subjects']) => {
+  if (Array.isArray(subjects)) return subjects.join(', ')
+  return subjects ?? ''
+}
+
+const parseSubjectsInput = (value: string) => {
+  const cleaned = value
+    .split(',')
+    .map((subject) => subject.trim())
+    .filter(Boolean)
+  return cleaned.length > 0 ? cleaned : null
 }
 
 export default function ProfilePage() {
@@ -254,7 +267,7 @@ export default function ProfilePage() {
           full_name: teacherForm.full_name,
           email: teacherForm.email,
           phone: teacherForm.phone || null,
-          subjects: teacherForm.subjects || null,
+          subjects: parseSubjectsInput(teacherForm.subjects),
           password: teacherForm.password,
           has_admin_access: teacherForm.has_admin_access,
           organisation_id: profile.organisation_id,
@@ -311,6 +324,7 @@ export default function ProfilePage() {
   const handleEditTeacher = async () => {
     if (!selectedTeacher || !teacherForm.full_name) return
 
+    const parsedSubjects = parseSubjectsInput(teacherForm.subjects)
     setSavingTeacher(true)
     try {
       const { error } = await supabase
@@ -319,17 +333,23 @@ export default function ProfilePage() {
           full_name: teacherForm.full_name,
           email: teacherForm.email || null,
           phone: teacherForm.phone || null,
-          subjects: teacherForm.subjects || null
+          subjects: parsedSubjects
         })
         .eq('id', selectedTeacher.id)
 
       if (error) throw error
 
-      setTeachers(teachers.map(t =>
+      setTeachers(teachers.map(t => (
         t.id === selectedTeacher.id
-          ? { ...t, ...teacherForm }
+          ? {
+              ...t,
+              full_name: teacherForm.full_name,
+              email: teacherForm.email || null,
+              phone: teacherForm.phone || null,
+              subjects: parsedSubjects
+            }
           : t
-      ))
+      )))
       setShowEditTeacher(false)
       setSelectedTeacher(null)
     } catch (error) {
@@ -775,7 +795,7 @@ export default function ProfilePage() {
                           email: teacher.email || '',
                           phone: teacher.phone || '',
                           address: '',
-                          subjects: teacher.subjects || '',
+                          subjects: normalizeSubjectsToString(teacher.subjects),
                           password: '',
                           has_admin_access: false
                         })
