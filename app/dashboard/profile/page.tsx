@@ -19,6 +19,7 @@ interface Teacher {
   full_name: string
   email: string | null
   phone: string | null
+  subjects: string | null
   organisation_id: string | null
 }
 
@@ -191,7 +192,7 @@ export default function ProfilePage() {
               // Fetch teachers
               const { data: teachersData } = await supabase
                 .from('teachers')
-                .select('id, full_name, email, phone, organisation_id')
+                .select('id, full_name, email, phone, subjects, organisation_id')
                 .eq('organisation_id', profileData.organisation_id)
 
               if (teachersData) {
@@ -317,7 +318,8 @@ export default function ProfilePage() {
         .update({
           full_name: teacherForm.full_name,
           email: teacherForm.email || null,
-          phone: teacherForm.phone || null
+          phone: teacherForm.phone || null,
+          subjects: teacherForm.subjects || null
         })
         .eq('id', selectedTeacher.id)
 
@@ -773,7 +775,7 @@ export default function ProfilePage() {
                           email: teacher.email || '',
                           phone: teacher.phone || '',
                           address: '',
-                          subjects: '',
+                          subjects: teacher.subjects || '',
                           password: '',
                           has_admin_access: false
                         })
@@ -972,7 +974,17 @@ export default function ProfilePage() {
                       placeholder="Enter phone"
                     />
                   </div>
-
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Subjects (comma separated)</label>
+                    <input
+                      type="text"
+                      value={teacherForm.subjects}
+                      onChange={(e) => setTeacherForm({ ...teacherForm, subjects: e.target.value })}
+                      className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+                      placeholder="e.g., Math, Science, English"
+                    />
+                  </div>
+                  
                   {/* Reset Password */}
                   <div className="pt-4 border-t border-gray-200">
                     <label className="block text-sm font-medium text-gray-700 mb-2">Reset Password</label>
