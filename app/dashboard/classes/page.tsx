@@ -69,7 +69,7 @@ export default function ClassesPage() {
   const [loading, setLoading] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
   const [organisationId, setOrganisationId] = useState<string | null>(null)
- const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [classView, setClassView] = useState<'admin' | 'teacher'>('admin')
   const [collapsedTeachers, setCollapsedTeachers] = useState<Record<string, boolean>>({})
   
@@ -386,6 +386,12 @@ export default function ClassesPage() {
   const sortClasses = (a: Class, b: Class) =>
     a.subject.localeCompare(b.subject) || a.name.localeCompare(b.name)
 
+  const sortClassesBySchedule = (a: Class, b: Class) =>
+    a.day_of_week - b.day_of_week ||
+    a.start_time.localeCompare(b.start_time) ||
+    a.subject.localeCompare(b.subject) ||
+    a.name.localeCompare(b.name)
+
   // Group classes by subject (like iOS app)
   const classesBySubject = classes.reduce((acc, cls) => {
     const subject = cls.subject.toUpperCase()
@@ -405,7 +411,7 @@ export default function ClassesPage() {
   const teacherEntries = Object.entries(classesByTeacher).sort(([a], [b]) => a.localeCompare(b))
 
   subjectEntries.forEach(([, subjectClasses]) => subjectClasses.sort(sortClasses))
-  teacherEntries.forEach(([, teacherClasses]) => teacherClasses.sort(sortClasses))
+  teacherEntries.forEach(([, teacherClasses]) => teacherClasses.sort(sortClassesBySchedule))
 
   useEffect(() => {
     if (!isAdminView) return
