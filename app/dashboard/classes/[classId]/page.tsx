@@ -104,6 +104,8 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
   const [loading, setLoading] = useState(true)
   const [selectedLesson, setSelectedLesson] = useState<LessonStatus | null>(null)
   const [showLessonModal, setShowLessonModal] = useState(false)
+  const [selectedLessonCoTeacherId, setSelectedLessonCoTeacherId] = useState('')
+  const [savingLessonCoTeacher, setSavingLessonCoTeacher] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [editModalFocus, setEditModalFocus] = useState<'coTeacher' | null>(null)
   const [savingEdits, setSavingEdits] = useState(false)
@@ -510,7 +512,45 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
 
   const handleLessonClick = (lesson: LessonStatus) => {
     setSelectedLesson(lesson)
+    setSelectedLessonCoTeacherId(lesson.co_teacher_id || '')
     setShowLessonModal(true)
+  }
+
+  const handleSaveLessonCoTeacher = async (nextTeacherId?: string) => {
+    if (!selectedLesson || savingLessonCoTeacher) return
+    const resolvedId = typeof nextTeacherId === 'string'
+      ? nextTeacherId
+      : selectedLessonCoTeacherId
+    setSavingLessonCoTeacher(true)
+    try {
+      const { error } = await supabase
+        .from('lesson_statuses')
+        .update({ co_teacher_id: resolvedId || null })
+        .eq('id', selectedLesson.id)
+
+      if (error) throw error
+
+      const resolvedTeacher = resolvedId
+        ? teachers.find((teacher) => teacher.id === resolvedId)
+        : null
+      const updatedLesson: LessonStatus = {
+        ...selectedLesson,
+        co_teacher_id: resolvedId || null,
+        co_teacher: resolvedTeacher
+          ? { full_name: resolvedTeacher.full_name, name: resolvedTeacher.name }
+          : null
+      }
+
+      setSelectedLesson(updatedLesson)
+      setLessons((prev) =>
+        prev.map((lesson) => (lesson.id === updatedLesson.id ? updatedLesson : lesson))
+      )
+    } catch (error) {
+      console.error('Error updating co-teacher:', error)
+      alert('Failed to update co-teacher')
+    } finally {
+      setSavingLessonCoTeacher(false)
+    }
   }
 
   const handleMarkCompleted = async () => {
@@ -1158,7 +1198,52 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
               Teacher: {primaryTeacherName}
               {selectedLesson.co_teacher ? ` • Co-teacher: ${getTeacherName(selectedLesson.co_teacher)}` : ''}
             </p>
-            
+
+            {isAdmin && (
+              <div className="mb-5 rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Update co-teacher
+                </label>
+                <select
+                  value={selectedLessonCoTeacherId}
+                  onChange={(e) => setSelectedLessonCoTeacherId(e.target.value)}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+                >
+                  <option value="">No co-teacher</option>
+                  {teachers
+                    .filter((teacher) => teacher.id !== classDetails.teacher_id)
+                    .map((teacher) => {
+                      const teacherLabel = teacher.full_name || teacher.name || teacher.email || 'Unnamed teacher'
+                      const showEmail = teacher.email && teacherLabel !== teacher.email
+                      return (
+                        <option key={teacher.id} value={teacher.id}>
+                          {teacherLabel} {showEmail ? `(${teacher.email})` : ''}
+                        </option>
+                      )
+                    })}
+                </select>
+                <div className="mt-3 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => handleSaveLessonCoTeacher()}
+                    className="px-4 py-2 bg-brand-primary text-white rounded-lg text-sm font-medium hover:bg-brand-primary-dark disabled:opacity-60"
+                    disabled={savingLessonCoTeacher}
+                  >
+                    {savingLessonCoTeacher ? 'Saving...' : 'Save co-teacher'}
+                  </button>
+                  {selectedLesson.co_teacher_id && (
+                    <button
+                      type="button"
+                      onClick={() => handleSaveLessonCoTeacher('')}
+                      className="px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 disabled:opacity-60"
+                      disabled={savingLessonCoTeacher}
+                    >
+                      Remove co-teacher
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}  
             <div className="space-y-3">
               {/* Mark as Completed */}
               <button
