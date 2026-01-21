@@ -804,6 +804,29 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
     }
   }
 
+    const sortedLessons = useMemo(
+    () =>
+      [...lessons].sort(
+        (a, b) => new Date(a.scheduled_date).getTime() - new Date(b.scheduled_date).getTime()
+      ),
+    [lessons]
+  )
+  const displayLessonNumbers = useMemo(() => {
+    let counter = 0
+    const mapping = new Map<string, number>()
+    sortedLessons.forEach((lesson) => {
+      const nextNumber = counter + 1
+      mapping.set(lesson.id, nextNumber)
+      if (lesson.status !== 'rescheduled') {
+        counter = nextNumber
+      }
+    })
+    return mapping
+  }, [sortedLessons])
+  const selectedLessonNumber = selectedLesson
+    ? displayLessonNumbers.get(selectedLesson.id) ?? selectedLesson.lesson_number
+    : null
+
   if (loading) {
     return <div className="text-center py-12">Loading class details...</div>
   }
@@ -830,28 +853,6 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
   const teacherNames = coTeacherNames.length > 0
     ? `${primaryTeacherName} • ${coTeacherNames.join(', ')}`
     : primaryTeacherName
-  const sortedLessons = useMemo(
-    () =>
-      [...lessons].sort(
-        (a, b) => new Date(a.scheduled_date).getTime() - new Date(b.scheduled_date).getTime()
-      ),
-    [lessons]
-  )
-  const displayLessonNumbers = useMemo(() => {
-    let counter = 0
-    const mapping = new Map<string, number>()
-    sortedLessons.forEach((lesson) => {
-      const nextNumber = counter + 1
-      mapping.set(lesson.id, nextNumber)
-      if (lesson.status !== 'rescheduled') {
-        counter = nextNumber
-      }
-    })
-    return mapping
-  }, [sortedLessons])
-  const selectedLessonNumber = selectedLesson
-    ? displayLessonNumbers.get(selectedLesson.id) ?? selectedLesson.lesson_number
-    : null
   
   return (
     <div className="px-4 py-6 sm:px-0 space-y-6">
