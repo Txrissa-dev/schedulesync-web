@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -830,6 +830,28 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
   const teacherNames = coTeacherNames.length > 0
     ? `${primaryTeacherName} • ${coTeacherNames.join(', ')}`
     : primaryTeacherName
+  const sortedLessons = useMemo(
+    () =>
+      [...lessons].sort(
+        (a, b) => new Date(a.scheduled_date).getTime() - new Date(b.scheduled_date).getTime()
+      ),
+    [lessons]
+  )
+  const displayLessonNumbers = useMemo(() => {
+    let counter = 0
+    const mapping = new Map<string, number>()
+    sortedLessons.forEach((lesson) => {
+      const nextNumber = counter + 1
+      mapping.set(lesson.id, nextNumber)
+      if (lesson.status !== 'rescheduled') {
+        counter = nextNumber
+      }
+    })
+    return mapping
+  }, [sortedLessons])
+  const selectedLessonNumber = selectedLesson
+    ? displayLessonNumbers.get(selectedLesson.id) ?? selectedLesson.lesson_number
+    : null
   
   return (
     <div className="px-4 py-6 sm:px-0 space-y-6">
@@ -1104,13 +1126,15 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
           <p className="text-center text-gray-500 py-8">No lessons scheduled yet</p>
         ) : (
           <div className="space-y-3">
-            {lessons.map((lesson) => {
+            {sortedLessons.map((lesson) => {
               const lessonDate = new Date(lesson.scheduled_date)
               const today = new Date()
               today.setHours(0, 0, 0, 0)
               const isUpcoming = lessonDate >= today && lesson.status === 'scheduled'
               const isCompleted = lesson.status === 'completed'
-
+              const isRescheduled = lesson.status === 'rescheduled'
+              const displayLessonNumber = displayLessonNumbers.get(lesson.id) ?? lesson.lesson_number
+            
               const formattedDate = `${MONTH_NAMES[lessonDate.getMonth()].slice(0, 3)} ${lessonDate.getDate()}, ${lessonDate.getFullYear()}`
 
               return (
@@ -1136,16 +1160,32 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                       </svg>
                     ) : (
-                      <span>{lesson.lesson_number}</span>
+                      <span>{displayLessonNumber}</span>
                     )}
                   </div>
 
                   {/* Lesson Info */}
                   <div className="flex-1">
-                    <h4 className="font-semibold text-gray-900">Lesson {lesson.lesson_number}</h4>
-                    <p className="text-sm text-gray-600">{formattedDate}</p>
+                    <h4
+                      className={`font-semibold ${
+                        isRescheduled ? 'text-gray-400 line-through' : 'text-gray-900'
+                      }`}
+                    >
+                      Lesson {displayLessonNumber}
+                    </h4>
+                    <p
+                      className={`text-sm ${
+                        isRescheduled ? 'text-gray-400 line-through' : 'text-gray-600'
+                      }`}
+                    >
+                      {formattedDate}
+                    </p>
                     {lesson.co_teacher && (
-                      <p className="text-sm text-gray-500">
+                      <p
+                        className={`text-sm ${
+                          isRescheduled ? 'text-gray-400 line-through' : 'text-gray-500'
+                        }`}
+                      >
                         Co-teacher: {getTeacherName(lesson.co_teacher)}
                       </p>
                     )}        
@@ -1184,7 +1224,7 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl p-6 max-w-md w-full">
             <h2 className="text-2xl font-bold text-center text-gray-900 mb-2">
-              Lesson {selectedLesson.lesson_number}
+              Lesson {selectedLessonNumber ?? selectedLesson.lesson_number}
             </h2>
             <p className="text-center text-gray-600 mb-6">
               {new Date(selectedLesson.scheduled_date).toLocaleDateString('en-US', {
