@@ -364,8 +364,8 @@ export default function DashboardPage() {
     <div className="px-4 py-6 sm:px-0">
       {/* Date Header */}
       <div className="mb-6">
-        <div className="flex items-baseline gap-2">
-          <h1 className="text-2xl font-bold text-brand-primary">{dateString}</h1>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-baseline">
+          <h1 className="text-xl font-bold text-brand-primary sm:text-2xl">{dateString}</h1>
           {isAdminView && (
             <span className="text-sm text-gray-600">(Admin View - All Teachers)</span>
           )}
@@ -374,14 +374,14 @@ export default function DashboardPage() {
           )}
         </div>
         {isAdmin && isTeacher && (
-          <div className="mt-3 flex items-center gap-3">
+          <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
             <span className="text-sm text-gray-600">View:</span>
-            <div className="inline-flex rounded-lg border border-gray-200 bg-white p-1 shadow-sm">
+            <div className="flex w-full rounded-lg border border-gray-200 bg-white p-1 shadow-sm sm:inline-flex sm:w-auto">
               <button
                 type="button"
                 onClick={() => setDashboardView('admin')}
                 aria-pressed={isAdminView}
-                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                className={`flex-1 px-3 py-1.5 text-sm font-medium rounded-md transition-colors sm:flex-none ${
                   isAdminView
                     ? 'bg-brand-primary text-white'
                     : 'text-gray-600 hover:text-gray-900'
@@ -393,7 +393,7 @@ export default function DashboardPage() {
                 type="button"
                 onClick={() => setDashboardView('teacher')}
                 aria-pressed={isTeacherView}
-                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                className={`flex-1 px-3 py-1.5 text-sm font-medium rounded-md transition-colors sm:flex-none ${
                   isTeacherView
                     ? 'bg-brand-primary text-white'
                     : 'text-gray-600 hover:text-gray-900'
@@ -448,12 +448,12 @@ export default function DashboardPage() {
 
       {/* Announcements Section */}
       <div className="mt-6 bg-white shadow-lg rounded-xl border border-orange-100 p-6">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-900">Announcements</h3>
           {isAdminView && (
             <button
               onClick={() => setShowAnnouncementForm(!showAnnouncementForm)}
-              className="flex items-center gap-2 px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-primary-dark transition-colors text-sm font-medium"
+              className="flex w-full items-center justify-center gap-2 px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-primary-dark transition-colors text-sm font-medium sm:w-auto"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
