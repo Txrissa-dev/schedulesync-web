@@ -486,7 +486,7 @@ export default function DashboardPage() {
                   placeholder="Enter announcement message"
                 />
               </div>
-              <div className="flex gap-2 justify-end">
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                 <button
                   onClick={() => {
                     setShowAnnouncementForm(false)
@@ -549,8 +549,8 @@ export default function DashboardPage() {
           ) : (
             <div className="space-y-3">
               {todayClasses.map((cls) => (
-                <div key={cls.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-brand-primary transition-colors">
-                  <div className="flex items-center justify-between">
+              <div key={cls.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-brand-primary transition-colors">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex-1">
                       <h4 className="font-semibold text-gray-900">{cls.name}</h4>
                       <div className="flex flex-wrap gap-3 mt-1 text-sm text-gray-600">
@@ -597,8 +597,8 @@ export default function DashboardPage() {
           ) : (
             <div className="space-y-3">
               {allClassesToday.map((cls) => (
-                <div key={cls.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-brand-primary transition-colors">
-                  <div className="flex items-center justify-between">
+              <div key={cls.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-brand-primary transition-colors">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex-1">
                       <h4 className="font-semibold text-gray-900">{cls.name}</h4>
                       <div className="flex flex-wrap gap-3 mt-1 text-sm text-gray-600">
