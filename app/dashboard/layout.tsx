@@ -65,7 +65,7 @@ export default function DashboardLayout({
       {/* Top Navigation Bar */}
       <nav className="bg-white shadow-sm border-b border-orange-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
+          <div className="flex flex-col gap-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:h-16 sm:py-0">
             {/* Logo & Brand */}
             <div className="flex items-center space-x-3">
               <img
@@ -76,11 +76,11 @@ export default function DashboardLayout({
             </div>
 
             {/* User Menu */}
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-700">{user?.email}</span>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:space-x-4 sm:gap-0">
+              <span className="text-sm text-gray-700 break-all sm:break-normal">{user?.email}</span>
               <button
                 onClick={handleSignOut}
-                className="px-4 py-2 text-sm font-medium text-white bg-gray-600 rounded-lg hover:bg-gray-700 transition-colors"
+                className="w-full px-4 py-2 text-sm font-medium text-white bg-gray-600 rounded-lg hover:bg-gray-700 transition-colors sm:w-auto"
               >
                 Sign Out
               </button>
@@ -92,7 +92,7 @@ export default function DashboardLayout({
       {/* Tabs Navigation */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <nav className="flex space-x-8" aria-label="Tabs">
+          <nav className="flex gap-6 overflow-x-auto whitespace-nowrap" aria-label="Tabs">
             {tabs.map((tab) => {
               const isActive = pathname === tab.href
               return (
@@ -115,7 +115,7 @@ export default function DashboardLayout({
         </div>
       </div>
 
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      <main className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
         {children}
       </main>
     </div>
