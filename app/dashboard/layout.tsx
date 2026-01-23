@@ -65,19 +65,19 @@ export default function DashboardLayout({
       {/* Top Navigation Bar */}
       <nav className="bg-white shadow-sm border-b border-orange-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col gap-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:h-16 sm:py-0">
+          <div className="flex flex-col gap-3 py-2 sm:flex-row sm:items-center sm:justify-between sm:h-16 sm:py-0">
             {/* Logo & Brand */}
             <div className="flex items-center space-x-3">
               <img
                 src="/logo.png"
                 alt="ScheduleSync Logo"
-                className="h-10 w-auto"
+                className="h-8 w-auto sm:h-10"
               />
             </div>
 
             {/* User Menu */}
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:space-x-4 sm:gap-0">
-              <span className="text-sm text-gray-700 break-all sm:break-normal">{user?.email}</span>
+              <span className="text-xs text-gray-700 break-all sm:text-sm sm:break-normal">{user?.email}</span>
               <button
                 onClick={handleSignOut}
                 className="w-full px-4 py-2 text-sm font-medium text-white bg-gray-600 rounded-lg hover:bg-gray-700 transition-colors sm:w-auto"
@@ -92,7 +92,7 @@ export default function DashboardLayout({
       {/* Tabs Navigation */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <nav className="flex gap-6 overflow-x-auto whitespace-nowrap" aria-label="Tabs">
+          <nav className="-mx-4 flex gap-4 overflow-x-auto whitespace-nowrap px-4 text-xs sm:mx-0 sm:gap-8 sm:px-0 sm:text-sm" aria-label="Tabs">
             {tabs.map((tab) => {
               const isActive = pathname === tab.href
               return (
