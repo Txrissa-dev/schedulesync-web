@@ -14,7 +14,8 @@ export default function DashboardLayout({
   const pathname = usePathname()
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<any>(null)
-
+  const [isAdmin, setIsAdmin] = useState(false)
+  
   useEffect(() => {
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession()
@@ -23,6 +24,12 @@ export default function DashboardLayout({
         router.push('/login')
       } else {
         setUser(session.user)
+        const { data: profile } = await supabase
+          .from('users')
+          .select('has_admin_access, is_super_admin')
+          .eq('auth_id', session.user.id)
+          .single()
+        setIsAdmin(Boolean(profile?.has_admin_access || profile?.is_super_admin))
         setLoading(false)
       }
     }
@@ -34,6 +41,14 @@ export default function DashboardLayout({
         router.push('/login')
       } else {
         setUser(session.user)
+        supabase
+          .from('users')
+          .select('has_admin_access, is_super_admin')
+          .eq('auth_id', session.user.id)
+          .single()
+          .then(({ data: profile }) => {
+            setIsAdmin(Boolean(profile?.has_admin_access || profile?.is_super_admin))
+          })
       }
     })
 
@@ -57,6 +72,7 @@ export default function DashboardLayout({
     { name: 'Today', href: '/dashboard' },
     { name: 'Schedule', href: '/dashboard/schedules' },
     { name: 'Classes', href: '/dashboard/classes' },
+    ...(isAdmin ? [{ name: 'Student Namelist', href: '/dashboard/student-namelist' }] : []),
     { name: 'Profile', href: '/dashboard/profile' },
   ]
 
