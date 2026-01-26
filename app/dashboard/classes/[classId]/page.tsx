@@ -97,6 +97,8 @@ const getStudentName = (
   return normalized?.name || 'Unnamed student'
 }
 
+const getTodayDateString = () => new Date().toISOString().split('T')[0]
+
 export default function ClassDetailsPage({ params }: { params: { classId: string } }) {
   const router = useRouter()
   const [classDetails, setClassDetails] = useState<ClassDetails | null>(null)
@@ -122,6 +124,7 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
   const [enrolledStudents, setEnrolledStudents] = useState<EnrolledStudent[]>([])
   const [students, setStudents] = useState<StudentOption[]>([])
   const [studentSearchQuery, setStudentSearchQuery] = useState('')
+  const [studentStartDate, setStudentStartDate] = useState(getTodayDateString())
   const [filteredStudents, setFilteredStudents] = useState<StudentOption[]>([])
   const [isAdmin, setIsAdmin] = useState(false)
   const [savingStudentId, setSavingStudentId] = useState<string | null>(null)
@@ -338,6 +341,12 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
   }, [classDetails?.organisation_id, isAdmin])
 
   useEffect(() => {
+    if (classDetails?.id) {
+      setStudentStartDate(getTodayDateString())
+    }
+  }, [classDetails?.id])
+
+  useEffect(() => {
     if (!studentSearchQuery.trim()) {
       setFilteredStudents([])
       return
@@ -350,7 +359,7 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
     setFilteredStudents(filtered)
   }, [studentSearchQuery, students, enrolledStudents])
 
-  const handleAssignStudent = async (studentId: string) => {
+  const handleAssignStudent = async (studentId: string, startDate: string) => {
     if (!classDetails) return
     if (enrolledStudents.some(student => student.student_id === studentId)) {
       setStudentSearchQuery('')
@@ -359,6 +368,7 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
     }
     setAddingStudent(true)
     try {
+      const resolvedStartDate = startDate || getTodayDateString()
       const insertSelect = async (includeNotes: boolean, includeId: boolean) => {
         const baseFields = includeId ? 'id, student_id' : 'student_id'
         const selectFields = includeNotes
@@ -366,7 +376,7 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
           : `${baseFields}, students:student_id (id, name)`
         const response = await supabase
           .from('class_students')
-          .insert({ class_id: classDetails.id, student_id: studentId })
+          .insert({ class_id: classDetails.id, student_id: studentId, enrolled_at: resolvedStartDate })
           .select(selectFields)
           .single()
         return response as { data: ClassStudentRow | null; error: any }
@@ -422,7 +432,7 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
     }
   }
 
-  const handleCreateAndAssignStudent = async (name: string) => {
+  const handleCreateAndAssignStudent = async (name: string, startDate: string) => {
     if (!classDetails?.organisation_id) return
     setAddingStudent(true)
     try {
@@ -435,7 +445,7 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
       if (createError || !newStudent) throw createError
 
       setStudents(prev => [...prev, newStudent].sort((a, b) => a.name.localeCompare(b.name)))
-      await handleAssignStudent(newStudent.id)
+      await handleAssignStudent(newStudent.id, startDate)
     } catch (error) {
       console.error('Error creating student:', error)
       alert('Failed to create student')
@@ -981,32 +991,43 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
           <div className="mb-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
             <label className="block text-xs font-semibold text-gray-500 mb-2">Add student</label>
             <div className="flex flex-col gap-2">
-              <input
-                type="text"
-                value={studentSearchQuery}
-                onChange={(e) => setStudentSearchQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && studentSearchQuery.trim()) {
-                    const exactMatch = students.find(
-                      student => student.name.toLowerCase() === studentSearchQuery.trim().toLowerCase()
-                    )
-                    if (exactMatch) {
-                      handleAssignStudent(exactMatch.id)
-                    } else {
-                      handleCreateAndAssignStudent(studentSearchQuery.trim())
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <input
+                  type="text"
+                  value={studentSearchQuery}
+                  onChange={(e) => setStudentSearchQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && studentSearchQuery.trim()) {
+                      const exactMatch = students.find(
+                        student => student.name.toLowerCase() === studentSearchQuery.trim().toLowerCase()
+                      )
+                      if (exactMatch) {
+                        handleAssignStudent(exactMatch.id, studentStartDate)
+                      } else {
+                        handleCreateAndAssignStudent(studentSearchQuery.trim(), studentStartDate)
+                      }
                     }
-                  }
-                }}
-                placeholder="Type a student name and press Enter..."
-                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
-              />
+                  }}
+                  placeholder="Type a student name and press Enter..."
+                  className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+                />
+                <div className="flex flex-col">
+                  <label className="text-xs font-semibold text-gray-500 mb-1">Start date</label>
+                  <input
+                    type="date"
+                    value={studentStartDate}
+                    onChange={(e) => setStudentStartDate(e.target.value)}
+                    className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+                  />
+                </div>
+              </div>
               {filteredStudents.length > 0 && (
                 <div className="rounded-lg border border-gray-200 bg-white p-2 max-h-40 overflow-y-auto">
                   {filteredStudents.map(student => (
                     <button
                       key={student.id}
                       type="button"
-                      onClick={() => handleAssignStudent(student.id)}
+                      onClick={() => handleAssignStudent(student.id, studentStartDate)}
                       className="w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 text-sm text-gray-700"
                     >
                       {student.name}
@@ -1017,6 +1038,9 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
             </div>
             <p className="mt-2 text-xs text-gray-500">
               Press Enter to add. If the student does not exist, a new record will be created.
+            </p>
+            <p className="mt-1 text-xs text-gray-500">
+              Lessons before the start date will default to prorated attendance.
             </p>
             {addingStudent && <p className="mt-2 text-xs text-gray-500">Adding student...</p>}
           </div>
