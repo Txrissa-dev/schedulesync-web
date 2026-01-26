@@ -18,14 +18,14 @@ interface AttendanceRecord {
   date: string
   lesson_number: number
   students: {
-    [studentId: string]: 'present' | 'absent' | 'late' | 'excused'
+    [studentId: string]: 'present' | 'absent' | 'late' | 'excused' | 'prorated'
   }
 }
 
 interface StudentSummary {
   id: string
   name: string
-  attendance: { [date: string]: 'present' | 'absent' | 'late' | 'excused' }
+  attendance: { [date: string]: 'present' | 'absent' | 'late' | 'excused' | 'prorated' }
   totalPresent: number
 }
 
