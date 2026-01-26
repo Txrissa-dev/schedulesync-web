@@ -20,6 +20,12 @@ interface ClassInfo {
   end_time: string
 }
 
+const toStartOfDay = (date: Date) => {
+  const normalized = new Date(date)
+  normalized.setHours(0, 0, 0, 0)
+  return normalized
+}
+
 export default function AttendancePage({ params }: { params: { classId: string } }) {
   const router = useRouter()
   const [classInfo, setClassInfo] = useState<ClassInfo | null>(null)
@@ -53,11 +59,12 @@ export default function AttendancePage({ params }: { params: { classId: string }
       // Fetch students in this class
       const { data: classStudents } = await supabase
         .from('class_students')
-        .select('students:student_id (id, name)')
+        .select('students:student_id (id, name), enrolled_at')
         .eq('class_id', params.classId)
 
       if (!classStudents) return
-
+      const selectedDateStart = toStartOfDay(new Date(`${selectedDate}T00:00:00`))
+      
       // Check if attendance record exists for this date
       const { data: existingRecord } = await supabase
         .from('attendance_records')
@@ -80,10 +87,12 @@ export default function AttendancePage({ params }: { params: { classId: string }
           const attendance = studentAttendance?.find(
             (sa: any) => sa.student_id === cs.students.id
           )
+          const enrolledAt = cs.enrolled_at ? toStartOfDay(new Date(cs.enrolled_at)) : null
+          const defaultStatus = enrolledAt && selectedDateStart < enrolledAt ? 'prorated' : 'present'
           return {
             id: cs.students.id,
             name: cs.students.name,
-            attendance_status: attendance?.status || 'present',
+            attendance_status: attendance?.status || defaultStatus,
             attendance_notes: attendance?.notes || '',
             attendance_id: attendance?.id
           }
@@ -95,7 +104,9 @@ export default function AttendancePage({ params }: { params: { classId: string }
         const studentsData = classStudents.map((cs: any) => ({
           id: cs.students.id,
           name: cs.students.name,
-          attendance_status: 'present',
+          attendance_status: cs.enrolled_at && selectedDateStart < toStartOfDay(new Date(cs.enrolled_at))
+            ? 'prorated'
+            : 'present',
           attendance_notes: ''
         }))
         setStudents(studentsData)
@@ -202,7 +213,8 @@ export default function AttendancePage({ params }: { params: { classId: string }
   const presentCount = students.filter(s => s.attendance_status === 'present').length
   const absentCount = students.filter(s => s.attendance_status === 'absent').length
   const lateCount = students.filter(s => s.attendance_status === 'late').length
-
+  const proratedCount = students.filter(s => s.attendance_status === 'prorated').length
+  
   return (
     <div className="px-4 py-6 sm:px-0">
       <div className="bg-white shadow rounded-lg p-6">
@@ -235,7 +247,7 @@ export default function AttendancePage({ params }: { params: { classId: string }
         </div>
 
         {/* Attendance summary */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 gap-4 mb-6 sm:grid-cols-2 lg:grid-cols-4">
           <div className="bg-green-50 rounded-lg p-4">
             <p className="text-sm text-green-700">Present</p>
             <p className="text-2xl font-bold text-green-600">{presentCount}</p>
@@ -247,6 +259,10 @@ export default function AttendancePage({ params }: { params: { classId: string }
           <div className="bg-yellow-50 rounded-lg p-4">
             <p className="text-sm text-yellow-700">Late</p>
             <p className="text-2xl font-bold text-yellow-600">{lateCount}</p>
+          </div>
+          <div className="bg-gray-100 rounded-lg p-4">
+            <p className="text-sm text-gray-700">Prorated</p>
+            <p className="text-2xl font-bold text-gray-600">{proratedCount}</p>
           </div>
         </div>
 
@@ -286,6 +302,16 @@ export default function AttendancePage({ params }: { params: { classId: string }
                     }`}
                   >
                     Late
+                  </button>
+                  <button
+                    onClick={() => updateAttendanceStatus(student.id, 'prorated')}
+                    className={`px-3 py-1 rounded text-sm ${
+                      student.attendance_status === 'prorated'
+                        ? 'bg-gray-700 text-white'
+                        : 'bg-gray-200 text-gray-700'
+                    }`}
+                  >
+                    Prorated
                   </button>
                 </div>
               </div>
