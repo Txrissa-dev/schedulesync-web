@@ -143,7 +143,7 @@ export default function AttendanceReportPage({ params }: { params: { classId: st
       const row = [student.name]
       lessonDates.forEach(date => {
         const status = student.attendance[date]
-        row.push(status === 'present' ? 'P' : status === 'absent' ? 'A' : '-')
+        row.push(status === 'present' ? 'P' : status === 'absent' ? 'A' : status === 'prorated' ? 'AP' : '-')
       })
       row.push(student.totalPresent.toString())
       csv += row.join(',') + '\n'
@@ -278,28 +278,32 @@ export default function AttendanceReportPage({ params }: { params: { classId: st
                   <tr key={student.id} className="border-b border-gray-100">
                     <td className="py-3 px-2 text-sm font-medium text-gray-900">{student.name}</td>
                     {lessonDates.map((date, i) => {
-                      const status = student.attendance[date]
-                      return (
-                        <td key={i} className="py-3 px-2 text-center">
-                          <div className={`w-8 h-8 mx-auto rounded flex items-center justify-center ${
-                            status === 'present'
-                              ? 'bg-green-500'
-                              : status === 'absent'
-                              ? 'bg-gray-300'
-                              : 'bg-white'
-                          }`}>
-                            <span className={`font-bold text-sm ${
-                              status === 'present'
-                                ? 'text-white'
-                                : status === 'absent'
-                                ? 'text-gray-700'
-                                : 'text-gray-400'
-                            }`}>
-                              {status === 'present' ? 'P' : status === 'absent' ? 'A' : '-'}
-                            </span>
-                          </div>
-                        </td>
-                      )
+                          const status = student.attendance[date]
+                          return (
+                            <td key={i} className="py-3 px-2 text-center">
+                              <div className={`w-8 h-8 mx-auto rounded flex items-center justify-center ${
+                                status === 'present'
+                                  ? 'bg-green-500'
+                                  : status === 'absent'
+                                  ? 'bg-gray-300'
+                                  : status === 'prorated'
+                                  ? 'bg-gray-600'
+                                  : 'bg-white'
+                              }`}>
+                                <span className={`font-bold text-sm ${
+                                  status === 'present'
+                                    ? 'text-white'
+                                    : status === 'absent'
+                                    ? 'text-gray-700'
+                                    : status === 'prorated'
+                                    ? 'text-white'
+                                    : 'text-gray-400'
+                                }`}>
+                                  {status === 'present' ? 'P' : status === 'absent' || status === 'prorated' ? 'A' : '-'}
+                                </span>
+                              </div>
+                            </td>
+                          )
                     })}
                     <td className="py-3 px-2 text-center">
                       <span className="text-brand-primary font-bold">{student.totalPresent}</span>
