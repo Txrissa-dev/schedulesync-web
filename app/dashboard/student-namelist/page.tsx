@@ -7,10 +7,16 @@ interface CentreClass {
   id: string
   name: string
   centre_id: string
-  centres: {
-    id: string
-    name: string
-  } | null
+  centres:
+    | {
+        id: string
+        name: string
+      }
+    | {
+        id: string
+        name: string
+      }[]
+    | null
 }
 
 interface CentreGroup {
@@ -67,12 +73,13 @@ export default function StudentNamelistPage() {
 
         const centreMap = new Map<string, CentreGroup>()
         classData.forEach((cls: CentreClass) => {
-          if (!cls.centres) return
-          const centreId = cls.centres.id
+          const centre = Array.isArray(cls.centres) ? cls.centres[0] : cls.centres
+          if (!centre) return
+          const centreId = centre.id
           if (!centreMap.has(centreId)) {
             centreMap.set(centreId, {
               id: centreId,
-              name: cls.centres.name,
+              name: centre.name,
               classes: []
             })
           }
