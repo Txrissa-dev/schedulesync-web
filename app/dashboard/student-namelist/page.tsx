@@ -30,6 +30,8 @@ interface Student {
   name: string
 }
 
+const getTodayDateString = () => new Date().toISOString().split('T')[0]
+
 export default function StudentNamelistPage() {
   const [centres, setCentres] = useState<CentreGroup[]>([])
   const [expandedCentreId, setExpandedCentreId] = useState<string | null>(null)
@@ -38,6 +40,7 @@ export default function StudentNamelistPage() {
   const [loading, setLoading] = useState(true)
   const [studentLoading, setStudentLoading] = useState(false)
   const [newStudentName, setNewStudentName] = useState('')
+  const [newStudentStartDate, setNewStudentStartDate] = useState(getTodayDateString())
   const [addingStudent, setAddingStudent] = useState(false)
   const [organisationId, setOrganisationId] = useState<string | null>(null)
 
@@ -109,6 +112,7 @@ export default function StudentNamelistPage() {
   const handleOpenClass = async (cls: { id: string; name: string }) => {
     setSelectedClass(cls)
     setNewStudentName('')
+    setNewStudentStartDate(getTodayDateString())
     setStudents([])
     setStudentLoading(true)
     try {
@@ -133,7 +137,7 @@ export default function StudentNamelistPage() {
   }
 
   const handleAddStudent = async () => {
-    if (!selectedClass || !organisationId || !newStudentName.trim()) return
+    if (!selectedClass || !organisationId || !newStudentName.trim() || !newStudentStartDate) return
 
     const cleanedName = newStudentName.trim()
     setAddingStudent(true)
@@ -176,7 +180,8 @@ export default function StudentNamelistPage() {
           .from('class_students')
           .insert({
             class_id: selectedClass.id,
-            student_id: studentId
+            student_id: studentId,
+            enrolled_at: newStudentStartDate
           })
 
         if (assignmentError) throw assignmentError
@@ -286,7 +291,7 @@ export default function StudentNamelistPage() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Add new student to this class
               </label>
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
                 <input
                   type="text"
                   value={newStudentName}
@@ -294,6 +299,15 @@ export default function StudentNamelistPage() {
                   placeholder="Student full name"
                   className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-secondary"
                 />
+                <div className="flex flex-col">
+                  <label className="text-xs font-semibold text-gray-500 mb-1">Start date</label>
+                  <input
+                    type="date"
+                    value={newStudentStartDate}
+                    onChange={(event) => setNewStudentStartDate(event.target.value)}
+                    className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+                  />
+                </div>
                 <button
                   type="button"
                   onClick={handleAddStudent}
@@ -304,7 +318,10 @@ export default function StudentNamelistPage() {
                 </button>
               </div>
             </div>
-
+            <p className="mt-2 text-xs text-gray-500">
+              Lessons before the start date will default to prorated attendance.
+            </p>
+            
             <div className="mt-5">
               <h3 className="text-sm font-semibold text-gray-700 mb-3">Enrolled Students</h3>
               {studentLoading ? (
