@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation'
 interface Student {
   id: string
   name: string
-  attendance_status?: 'present' | 'absent' | 'late' | 'excused'
+  attendance_status?: 'present' | 'absent' | 'late' | 'excused' | 'prorated'
 }
 
 interface LessonDetails {
@@ -16,6 +16,12 @@ interface LessonDetails {
   lesson_number: number
   scheduled_date: string
   attendance_record_id?: string
+}
+
+const toStartOfDay = (date: Date) => {
+  const normalized = new Date(date)
+  normalized.setHours(0, 0, 0, 0)
+  return normalized
 }
 
 export default function MarkAttendancePage({
@@ -52,7 +58,8 @@ export default function MarkAttendancePage({
         .from('class_students')
         .select(`
           student_id,
-          students (id, name)
+          students (id, name),
+          enrolled_at
         `)
         .eq('class_id', params.classId)
 
@@ -81,12 +88,18 @@ export default function MarkAttendancePage({
           }
         }
 
+        const lessonDate = lesson?.scheduled_date
+          ? toStartOfDay(new Date(`${lesson.scheduled_date}T00:00:00`))
+          : null
         const studentsWithAttendance = classStudents.map((cs: any) => {
           const existingRecord = existingAttendance.find(a => a.student_id === cs.students.id)
+          const enrolledAt = cs.enrolled_at ? toStartOfDay(new Date(cs.enrolled_at)) : null
+          const defaultStatus =
+            lessonDate && enrolledAt && lessonDate < enrolledAt ? 'prorated' : 'present'
           return {
             id: cs.students.id,
             name: cs.students.name,
-            attendance_status: existingRecord?.status || 'present'
+            attendance_status: existingRecord?.status || defaultStatus
           }
         })
 
@@ -202,7 +215,8 @@ export default function MarkAttendancePage({
 
   const presentCount = students.filter(s => s.attendance_status === 'present').length
   const absentCount = students.filter(s => s.attendance_status === 'absent').length
-
+  const proratedCount = students.filter(s => s.attendance_status === 'prorated').length
+  
   return (
     <div className="min-h-screen bg-gray-50 px-4 py-6">
       <div className="max-w-2xl mx-auto">
@@ -259,6 +273,13 @@ export default function MarkAttendancePage({
                     </svg>
                     <span className="font-medium text-sm">Present</span>
                   </div>
+                ) : student.attendance_status === 'prorated' ? (
+                  <div className="flex items-center gap-2 bg-gray-200 text-gray-700 px-3 py-1.5 rounded-full">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M18 12H6" />
+                    </svg>
+                    <span className="font-medium text-sm">Prorated</span>
+                  </div>
                 ) : (
                   <div className="flex items-center gap-2 bg-red-100 text-red-700 px-3 py-1.5 rounded-full">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -297,6 +318,8 @@ export default function MarkAttendancePage({
           <span className="font-medium text-green-600">{presentCount} Present</span>
           {' • '}
           <span className="font-medium text-red-600">{absentCount} Absent</span>
+          {' • '}
+          <span className="font-medium text-gray-600">{proratedCount} Prorated</span>
         </div>
       </div>
     </div>
