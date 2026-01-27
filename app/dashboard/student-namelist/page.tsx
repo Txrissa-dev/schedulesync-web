@@ -176,13 +176,25 @@ export default function StudentNamelistPage() {
         .maybeSingle()
 
       if (!existingAssignment) {
-        const { error: assignmentError } = await supabase
+        let assignmentError = null
+        const { error: enrolledError } = await supabase
           .from('class_students')
           .insert({
             class_id: selectedClass.id,
             student_id: studentId,
             enrolled_at: newStudentStartDate
           })
+        assignmentError = enrolledError
+
+        if (assignmentError?.code === 'PGRST204' && String(assignmentError.message || '').includes('enrolled_at')) {
+          const { error: fallbackError } = await supabase
+            .from('class_students')
+            .insert({
+              class_id: selectedClass.id,
+              student_id: studentId
+            })
+          assignmentError = fallbackError
+        }
 
         if (assignmentError) throw assignmentError
       }
