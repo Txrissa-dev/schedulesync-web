@@ -54,7 +54,8 @@ export default function MarkAttendancePage({
       }
 
       // Fetch students enrolled in this class
-      const { data: classStudents } = await supabase
+      let classStudents: any[] | null = null
+      const { data: classStudentsWithEnrolledAt, error: classStudentsError } = await supabase
         .from('class_students')
         .select(`
           student_id,
@@ -62,7 +63,22 @@ export default function MarkAttendancePage({
           enrolled_at
         `)
         .eq('class_id', params.classId)
+      classStudents = classStudentsWithEnrolledAt
 
+      if (classStudentsError?.code === 'PGRST204' && String(classStudentsError.message || '').includes('enrolled_at')) {
+        const { data: classStudentsFallback, error: fallbackError } = await supabase
+          .from('class_students')
+          .select(`
+            student_id,
+            students (id, name)
+          `)
+          .eq('class_id', params.classId)
+        if (fallbackError) throw fallbackError
+        classStudents = classStudentsFallback
+      } else if (classStudentsError) {
+        throw classStudentsError
+      }
+      
       if (classStudents) {
         // Check if attendance record already exists
         let existingAttendance: any[] = []
