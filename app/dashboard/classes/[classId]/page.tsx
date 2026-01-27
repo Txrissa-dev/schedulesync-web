@@ -369,14 +369,21 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
     setAddingStudent(true)
     try {
       const resolvedStartDate = startDate || getTodayDateString()
-      const insertSelect = async (includeNotes: boolean, includeId: boolean) => {
+      const insertSelect = async (
+        includeNotes: boolean,
+        includeId: boolean,
+        includeEnrolledAt: boolean
+      ) => {
         const baseFields = includeId ? 'id, student_id' : 'student_id'
         const selectFields = includeNotes
           ? `${baseFields}, notes, students:student_id (id, name)`
           : `${baseFields}, students:student_id (id, name)`
+        const insertPayload = includeEnrolledAt
+          ? { class_id: classDetails.id, student_id: studentId, enrolled_at: resolvedStartDate }
+          : { class_id: classDetails.id, student_id: studentId }
         const response = await supabase
           .from('class_students')
-          .insert({ class_id: classDetails.id, student_id: studentId, enrolled_at: resolvedStartDate })
+          .insert(insertPayload)
           .select(selectFields)
           .single()
         return response as { data: ClassStudentRow | null; error: any }
@@ -384,12 +391,20 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
 
       let includeId = true
       let includeNotes = true
-      let { data: assignment, error } = await insertSelect(includeNotes, includeId)
+      let includeEnrolledAt = true
+      let { data: assignment, error } = await insertSelect(includeNotes, includeId, includeEnrolledAt)
+
+      if (error?.code === 'PGRST204' && String(error.message || '').includes('enrolled_at')) {
+        includeEnrolledAt = false
+        const fallback = await insertSelect(includeNotes, includeId, includeEnrolledAt)
+        assignment = fallback.data
+        error = fallback.error
+      }
 
       if (error && isMissingIdColumn(error)) {
         includeId = false
         setSupportsClassStudentId(false)
-        const fallback = await insertSelect(includeNotes, includeId)
+        const fallback = await insertSelect(includeNotes, includeId, includeEnrolledAt)
         assignment = fallback.data
         error = fallback.error
       } else {
@@ -399,7 +414,7 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
       if (error && isMissingNotesColumn(error)) {
         includeNotes = false
         setSupportsStudentNotes(false)
-        const fallback = await insertSelect(includeNotes, includeId)
+        const fallback = await insertSelect(includeNotes, includeId, includeEnrolledAt)
         assignment = fallback.data
         error = fallback.error
       } else {
