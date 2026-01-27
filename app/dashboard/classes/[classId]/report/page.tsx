@@ -14,18 +14,20 @@ interface ClassInfo {
   completed_lessons: number
 }
 
+type AttendanceStatus = 'present' | 'absent' | 'late' | 'excused' | 'prorated'
+
 interface AttendanceRecord {
   date: string
   lesson_number: number
   students: {
-    [studentId: string]: 'present' | 'absent' | 'late' | 'excused' | 'prorated'
+    [studentId: string]: AttendanceStatus
   }
 }
 
 interface StudentSummary {
   id: string
   name: string
-  attendance: { [date: string]: 'present' | 'absent' | 'late' | 'excused' | 'prorated' }
+  attendance: { [date: string]: AttendanceStatus }
   totalPresent: number
 }
 
@@ -142,7 +144,7 @@ export default function AttendanceReportPage({ params }: { params: { classId: st
     students.forEach(student => {
       const row = [student.name]
       lessonDates.forEach(date => {
-        const status = student.attendance[date]
+        const status = student.attendance[date] as AttendanceStatus | undefined
         row.push(status === 'present' ? 'P' : status === 'absent' ? 'A' : status === 'prorated' ? 'AP' : '-')
       })
       row.push(student.totalPresent.toString())
