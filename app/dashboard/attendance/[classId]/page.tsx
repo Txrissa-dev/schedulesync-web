@@ -57,14 +57,27 @@ export default function AttendancePage({ params }: { params: { classId: string }
       }
 
       // Fetch students in this class
-      const { data: classStudents } = await supabase
+      let classStudents: any[] | null = null
+      const { data: classStudentsWithEnrolledAt, error: classStudentsError } = await supabase
         .from('class_students')
         .select('students:student_id (id, name), enrolled_at')
         .eq('class_id', params.classId)
+      classStudents = classStudentsWithEnrolledAt
+
+      if (classStudentsError?.code === 'PGRST204' && String(classStudentsError.message || '').includes('enrolled_at')) {
+        const { data: classStudentsFallback, error: fallbackError } = await supabase
+          .from('class_students')
+          .select('students:student_id (id, name)')
+          .eq('class_id', params.classId)
+        if (fallbackError) throw fallbackError
+        classStudents = classStudentsFallback
+      } else if (classStudentsError) {
+        throw classStudentsError
+      }
 
       if (!classStudents) return
       const selectedDateStart = toStartOfDay(new Date(`${selectedDate}T00:00:00`))
-      
+
       // Check if attendance record exists for this date
       const { data: existingRecord } = await supabase
         .from('attendance_records')
@@ -72,7 +85,7 @@ export default function AttendancePage({ params }: { params: { classId: string }
         .eq('class_id', params.classId)
         .eq('date', selectedDate)
         .single()
-
+      
       if (existingRecord) {
         setAttendanceRecordId(existingRecord.id)
         setTeacherNotes(existingRecord.teacher_notes || '')
