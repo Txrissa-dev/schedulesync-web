@@ -50,12 +50,17 @@ const formatDateKey = (date: Date) => {
   return `${year}-${month}-${day}`
 }
 
+const getNextDateKey = (date: Date) => {
+  const next = new Date(date)
+  next.setDate(next.getDate() + 1)
+  return formatDateKey(next)
+}
+
 const getDayRange = (date: Date) => {
-  const year = date.getFullYear()
-  const month = date.getMonth()
-  const day = date.getDate()
-  const start = new Date(Date.UTC(year, month, day))
-  const end = new Date(Date.UTC(year, month, day + 1))
+  const startKey = formatDateKey(date)
+  const endKey = getNextDateKey(date)
+  const start = new Date(`${startKey}T00:00:00Z`)
+  const end = new Date(`${endKey}T00:00:00Z`)
   return { start: start.toISOString(), end: end.toISOString() }
 }
 
