@@ -50,6 +50,12 @@ const formatDateKey = (date: Date) => {
   return `${year}-${month}-${day}`
 }
 
+const getNextDateKey = (date: Date) => {
+  const next = new Date(date)
+  next.setDate(next.getDate() + 1)
+  return formatDateKey(next)
+}
+
 export default function DashboardPage() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [stats, setStats] = useState<DashboardStats>({ centres: 0, students: 0, teachers: 0, classes: 0 })
@@ -113,11 +119,13 @@ export default function DashboardPage() {
 
         const today = new Date()
         const todayKey = formatDateKey(today)
+        const tomorrowKey = getNextDateKey(today)
 
         const { data: todayLessons } = await supabase
           .from('lesson_statuses')
           .select('class_id, co_teacher_id')
-          .eq('scheduled_date', todayKey)
+          .gte('scheduled_date', todayKey)
+          .lt('scheduled_date', tomorrowKey)
           .neq('status', 'rescheduled')
         
         const todayClassIds = todayLessons?.map((lesson) => lesson.class_id) ?? []
