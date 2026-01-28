@@ -26,6 +26,13 @@ const toStartOfDay = (date: Date) => {
   return normalized
 }
 
+const getNextDateKey = (dateKey: string) => {
+  const [year, month, day] = dateKey.split('-').map(Number)
+  const next = new Date(year, month - 1, day)
+  next.setDate(next.getDate() + 1)
+  return next.toISOString().split('T')[0]
+}
+
 export default function AttendancePage({ params }: { params: { classId: string } }) {
   const router = useRouter()
   const [classInfo, setClassInfo] = useState<ClassInfo | null>(null)
@@ -79,11 +86,13 @@ export default function AttendancePage({ params }: { params: { classId: string }
       const selectedDateStart = toStartOfDay(new Date(`${selectedDate}T00:00:00`))
 
       // Check if attendance record exists for this date
+      const nextDateKey = getNextDateKey(selectedDate)
       const { data: existingRecord } = await supabase
         .from('attendance_records')
         .select('id, teacher_notes')
         .eq('class_id', params.classId)
-        .eq('date', selectedDate)
+        .gte('date', selectedDate)
+        .lt('date', nextDateKey)
         .single()
       
       if (existingRecord) {
