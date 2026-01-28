@@ -24,6 +24,10 @@ const toStartOfDay = (date: Date) => {
   return normalized
 }
 
+const toDateKey = (value: string) => (value.includes('T') ? value.split('T')[0] : value)
+const parseLessonDate = (value?: string | null) =>
+  value ? new Date(value.includes('T') ? value : `${value}T00:00:00`) : null
+
 export default function MarkAttendancePage({
   params
 }: {
@@ -104,9 +108,8 @@ export default function MarkAttendancePage({
           }
         }
 
-        const lessonDate = lesson?.scheduled_date
-          ? toStartOfDay(new Date(`${lesson.scheduled_date}T00:00:00`))
-          : null
+        const parsedLessonDate = parseLessonDate(lesson?.scheduled_date)
+        const lessonDate = parsedLessonDate ? toStartOfDay(parsedLessonDate) : null
         const studentsWithAttendance = classStudents.map((cs: any) => {
           const existingRecord = existingAttendance.find(a => a.student_id === cs.students.id)
           const enrolledAt = cs.enrolled_at ? toStartOfDay(new Date(cs.enrolled_at)) : null
@@ -167,7 +170,7 @@ export default function MarkAttendancePage({
           .from('attendance_records')
           .insert({
             class_id: params.classId,
-            date: lessonDetails.scheduled_date,
+            date: toDateKey(lessonDetails.scheduled_date),
             teacher_notes: teacherNotes || null,
             marked_at: new Date().toISOString()
           })
