@@ -37,7 +37,7 @@ export default function SchedulesPage() {
   const [viewMode, setViewMode] = useState<'admin' | 'teacher'>('admin')
   
   const getDateKey = (date: Date) => date.toLocaleDateString('en-CA')
-   const getMonthRange = (date: Date) => {
+  const getMonthRange = (date: Date) => {
     const year = date.getFullYear()
     const month = date.getMonth()
     const start = new Date(Date.UTC(year, month, 1))
