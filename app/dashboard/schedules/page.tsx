@@ -37,10 +37,12 @@ export default function SchedulesPage() {
   const [viewMode, setViewMode] = useState<'admin' | 'teacher'>('admin')
   
   const getDateKey = (date: Date) => date.toLocaleDateString('en-CA')
-  const getNextDateKey = (date: Date) => {
-    const next = new Date(date)
-    next.setDate(next.getDate() + 1)
-    return getDateKey(next)
+   const getMonthRange = (date: Date) => {
+    const year = date.getFullYear()
+    const month = date.getMonth()
+    const start = new Date(Date.UTC(year, month, 1))
+    const end = new Date(Date.UTC(year, month + 1, 1))
+    return { start: start.toISOString(), end: end.toISOString() }
   }
   const normalizeScheduledDate = (scheduledDate: string) =>
     scheduledDate.includes('T') ? scheduledDate.split('T')[0] : scheduledDate
@@ -171,7 +173,7 @@ export default function SchedulesPage() {
       }
 
       try {
-        const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
+        const { start: monthStartIso, end: monthEndIso } = getMonthRange(currentDate)
         const monthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
         const classIds = classes.map((cls) => cls.id)
         const isTeacherView = !userProfile?.has_admin_access && !userProfile?.is_super_admin
@@ -191,9 +193,8 @@ export default function SchedulesPage() {
               .from('lesson_statuses')
               .select('class_id, scheduled_date')
               .in('class_id', classIds)
-              .neq('status', 'rescheduled')
-              .gte('scheduled_date', getDateKey(monthStart))
-              .lt('scheduled_date', getNextDateKey(monthEnd))
+              .gte('scheduled_date', monthStartIso)
+              .lt('scheduled_date', monthEndIso)
           )
         } else {
           if (primaryClassIds.length > 0) {
@@ -203,8 +204,8 @@ export default function SchedulesPage() {
                 .select('class_id, scheduled_date')
                 .in('class_id', primaryClassIds)
                 .neq('status', 'rescheduled')
-                .gte('scheduled_date', getDateKey(monthStart))
-                .lt('scheduled_date', getNextDateKey(monthEnd))
+                .gte('scheduled_date', monthStartIso)
+                .lt('scheduled_date', monthEndIso)
             )
           }
           lessonQueries.push(
@@ -213,8 +214,8 @@ export default function SchedulesPage() {
               .select('class_id, scheduled_date')
               .eq('co_teacher_id', userProfile.teacher_id)
               .neq('status', 'rescheduled')
-              .gte('scheduled_date', getDateKey(monthStart))
-              .lt('scheduled_date', getNextDateKey(monthEnd))
+              .gte('scheduled_date', monthStartIso)
+              .lt('scheduled_date', monthEndIso)
           )
         }
         
