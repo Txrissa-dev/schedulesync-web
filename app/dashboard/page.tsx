@@ -50,10 +50,13 @@ const formatDateKey = (date: Date) => {
   return `${year}-${month}-${day}`
 }
 
-const getNextDateKey = (date: Date) => {
-  const next = new Date(date)
-  next.setDate(next.getDate() + 1)
-  return formatDateKey(next)
+const getDayRange = (date: Date) => {
+  const year = date.getFullYear()
+  const month = date.getMonth()
+  const day = date.getDate()
+  const start = new Date(Date.UTC(year, month, day))
+  const end = new Date(Date.UTC(year, month, day + 1))
+  return { start: start.toISOString(), end: end.toISOString() }
 }
 
 export default function DashboardPage() {
@@ -118,13 +121,13 @@ export default function DashboardPage() {
         })
 
         const today = new Date()
-        const todayKey = formatDateKey(today)
+        const { start: todayStartIso, end: tomorrowStartIso } = getDayRange(today)
         const tomorrowKey = getNextDateKey(today)
 
         const { data: todayLessons } = await supabase
           .from('lesson_statuses')
-          .select('class_id, co_teacher_id')
-          .gte('scheduled_date', todayKey)
+          .gte('scheduled_date', todayStartIso)
+          .lt('scheduled_date', tomorrowStartIso)
           .lt('scheduled_date', tomorrowKey)
           .neq('status', 'rescheduled')
         
