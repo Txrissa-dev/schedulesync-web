@@ -37,6 +37,13 @@ export default function SchedulesPage() {
   const [viewMode, setViewMode] = useState<'admin' | 'teacher'>('admin')
   
   const getDateKey = (date: Date) => date.toLocaleDateString('en-CA')
+  const getNextDateKey = (date: Date) => {
+    const next = new Date(date)
+    next.setDate(next.getDate() + 1)
+    return getDateKey(next)
+  }
+  const normalizeScheduledDate = (scheduledDate: string) =>
+    scheduledDate.includes('T') ? scheduledDate.split('T')[0] : scheduledDate
 
 
   
@@ -186,7 +193,7 @@ export default function SchedulesPage() {
               .in('class_id', classIds)
               .neq('status', 'rescheduled')
               .gte('scheduled_date', getDateKey(monthStart))
-              .lte('scheduled_date', getDateKey(monthEnd))
+              .lt('scheduled_date', getNextDateKey(monthEnd))
           )
         } else {
           if (primaryClassIds.length > 0) {
@@ -197,7 +204,7 @@ export default function SchedulesPage() {
                 .in('class_id', primaryClassIds)
                 .neq('status', 'rescheduled')
                 .gte('scheduled_date', getDateKey(monthStart))
-                .lte('scheduled_date', getDateKey(monthEnd))
+                .lt('scheduled_date', getNextDateKey(monthEnd))
             )
           }
           lessonQueries.push(
@@ -207,7 +214,7 @@ export default function SchedulesPage() {
               .eq('co_teacher_id', userProfile.teacher_id)
               .neq('status', 'rescheduled')
               .gte('scheduled_date', getDateKey(monthStart))
-              .lte('scheduled_date', getDateKey(monthEnd))
+              .lt('scheduled_date', getNextDateKey(monthEnd))
           )
         }
         
@@ -221,10 +228,11 @@ export default function SchedulesPage() {
         const groupedLessons: Record<string, string[]> = {}
         results.forEach((result) => {
           result.data?.forEach((lesson: any) => {
-            if (!groupedLessons[lesson.scheduled_date]) {
-              groupedLessons[lesson.scheduled_date] = []
+            const dateKey = normalizeScheduledDate(lesson.scheduled_date)
+            if (!groupedLessons[dateKey]) {
+              groupedLessons[dateKey] = []
             }
-            groupedLessons[lesson.scheduled_date].push(lesson.class_id)
+            groupedLessons[dateKey].push(lesson.class_id)
           })
         })
 
