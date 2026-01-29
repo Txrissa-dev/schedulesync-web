@@ -131,6 +131,7 @@ export default function DashboardPage() {
 
         const { data: todayLessons } = await supabase
           .from('lesson_statuses')
+          .select('class_id, co_teacher_id')
           .gte('scheduled_date', todayStartIso)
           .lt('scheduled_date', tomorrowStartIso)
           .lt('scheduled_date', tomorrowKey)
