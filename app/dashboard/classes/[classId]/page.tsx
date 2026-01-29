@@ -99,6 +99,38 @@ const getStudentName = (
 
 const getTodayDateString = () => new Date().toISOString().split('T')[0]
 
+const parseScheduledDate = (scheduledDate?: string | null) => {
+  if (!scheduledDate) return null
+
+  if (scheduledDate.includes('T')) {
+    const parsed = new Date(scheduledDate)
+    return Number.isNaN(parsed.getTime()) ? null : parsed
+  }
+
+  const [year, month, day] = scheduledDate.split('-').map(Number)
+  if (!year || !month || !day) return null
+  return new Date(year, month - 1, day)
+}
+
+const formatShortLessonDate = (scheduledDate?: string | null) => {
+  const parsedDate = parseScheduledDate(scheduledDate)
+  if (!parsedDate) return 'Date not set'
+
+  return `${MONTH_NAMES[parsedDate.getMonth()].slice(0, 3)} ${parsedDate.getDate()}, ${parsedDate.getFullYear()}`
+}
+
+const formatLongLessonDate = (scheduledDate?: string | null) => {
+  const parsedDate = parseScheduledDate(scheduledDate)
+  if (!parsedDate) return 'Date not set'
+
+  return parsedDate.toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  })
+}
+
 export default function ClassDetailsPage({ params }: { params: { classId: string } }) {
   const router = useRouter()
   const [classDetails, setClassDetails] = useState<ClassDetails | null>(null)
@@ -1167,16 +1199,15 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
         ) : (
           <div className="space-y-3">
             {sortedLessons.map((lesson) => {
-              const lessonDate = new Date(lesson.scheduled_date)
+              const lessonDate = parseScheduledDate(lesson.scheduled_date)
               const today = new Date()
               today.setHours(0, 0, 0, 0)
-              const isUpcoming = lessonDate >= today && lesson.status === 'scheduled'
+              const isUpcoming = lessonDate ? lessonDate >= today && lesson.status === 'scheduled' : false
               const isCompleted = lesson.status === 'completed'
               const isRescheduled = lesson.status === 'rescheduled'
               const displayLessonNumber = displayLessonNumbers.get(lesson.id) ?? lesson.lesson_number
+              const formattedDate = formatShortLessonDate(lesson.scheduled_date)
             
-              const formattedDate = `${MONTH_NAMES[lessonDate.getMonth()].slice(0, 3)} ${lessonDate.getDate()}, ${lessonDate.getFullYear()}`
-
               return (
                 <button
                   key={lesson.id}
@@ -1267,12 +1298,7 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
               Lesson {selectedLessonNumber ?? selectedLesson.lesson_number}
             </h2>
             <p className="text-center text-gray-600 mb-6">
-              {new Date(selectedLesson.scheduled_date).toLocaleDateString('en-US', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-              })}
+              {formatLongLessonDate(selectedLesson.scheduled_date)}
             </p>
             <p className="text-center text-sm text-gray-500 mb-4">
               Teacher: {primaryTeacherName}
