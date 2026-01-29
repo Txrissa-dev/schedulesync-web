@@ -743,6 +743,8 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
         })
         .eq('id', classDetails.id)
 
+      if (updateError) throw updateError
+      
       if (editForm.start_date && editForm.start_date !== firstLessonDate) {
         const isValidDateString = /^\d{4}-\d{2}-\d{2}$/.test(editForm.start_date)
         if (!isValidDateString) {
@@ -758,23 +760,42 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
           .filter((lesson) => lesson.status === 'scheduled')
           .sort((a, b) => a.lesson_number - b.lesson_number)
 
-        const updateRequests = scheduledLessons.map((lesson) => {
-          const nextDate = new Date(baseDate)
-          nextDate.setDate(baseDate.getDate() + (lesson.lesson_number - 1) * 7)
-          const scheduledDate = nextDate.toISOString().slice(0, 10)
+        if (scheduledLessons.length === 0 && totalLessonsToSave && totalLessonsToSave > 0) {
+          const lessonRecords = Array.from({ length: totalLessonsToSave }, (_, index) => {
+            const nextDate = new Date(baseDate)
+            nextDate.setDate(baseDate.getDate() + index * 7)
+            return {
+              class_id: classDetails.id,
+              lesson_number: index + 1,
+              scheduled_date: nextDate.toISOString().slice(0, 10),
+              status: 'scheduled',
+              notes: null,
+              co_teacher_id: null
+            }
+          })
 
-          return supabase
+          const { error: lessonsError } = await supabase
             .from('lesson_statuses')
-            .update({ scheduled_date: scheduledDate })
-            .eq('id', lesson.id)
-        })
+            .insert(lessonRecords)
 
-        const scheduleUpdates = await Promise.all(updateRequests)
-        const scheduleError = scheduleUpdates.find((result) => result.error)?.error
-        if (scheduleError) throw scheduleError
+          if (lessonsError) throw lessonsError
+        } else {
+          const updateRequests = scheduledLessons.map((lesson) => {
+            const nextDate = new Date(baseDate)
+            nextDate.setDate(baseDate.getDate() + (lesson.lesson_number - 1) * 7)
+            const scheduledDate = nextDate.toISOString().slice(0, 10)
+
+            return supabase
+              .from('lesson_statuses')
+              .update({ scheduled_date: scheduledDate })
+              .eq('id', lesson.id)
+          })
+
+          const scheduleUpdates = await Promise.all(updateRequests)
+          const scheduleError = scheduleUpdates.find((result) => result.error)?.error
+          if (scheduleError) throw scheduleError
+        }
       }
-
-      if (updateError) throw updateError
 
       if (cleanedLessonDates.length > 0) {
         const coTeacherByDate = new Map(
