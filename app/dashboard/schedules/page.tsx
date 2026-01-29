@@ -40,9 +40,9 @@ export default function SchedulesPage() {
   const getMonthRange = (date: Date) => {
     const year = date.getFullYear()
     const month = date.getMonth()
-    const start = new Date(Date.UTC(year, month, 1))
-    const end = new Date(Date.UTC(year, month + 1, 1))
-    return { start: start.toISOString(), end: end.toISOString() }
+    const start = new Date(year, month, 1)
+    const end = new Date(year, month + 1, 1)
+    return { start: getDateKey(start), end: getDateKey(end) }
   }
   const normalizeScheduledDate = (scheduledDate: string) =>
     scheduledDate.includes('T') ? scheduledDate.split('T')[0] : scheduledDate
