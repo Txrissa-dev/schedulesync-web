@@ -380,7 +380,17 @@ export default function DashboardPage() {
   const isTeacher = userProfile?.teacher_id !== null
   const isAdminView = Boolean(isAdmin && (!isTeacher || dashboardView === 'admin'))
   const isTeacherView = Boolean(isTeacher && (!isAdmin || dashboardView === 'teacher'))
-
+  const groupedAllClassesToday = isAdminView
+    ? allClassesToday.reduce<Record<string, TodayClass[]>>((grouped, cls) => {
+        const teacherKey = cls.teacher_name || 'No teacher assigned'
+        if (!grouped[teacherKey]) {
+          grouped[teacherKey] = []
+        }
+        grouped[teacherKey].push(cls)
+        return grouped
+      }, {})
+    : {}
+  
   // Format today's date
   const today = new Date()
   const dateString = today.toLocaleDateString('en-US', {
@@ -678,43 +688,58 @@ export default function DashboardPage() {
           {allClassesToday.length === 0 ? (
             <p className="text-center text-gray-500 py-8">No classes scheduled for today</p>
           ) : (
-            <div className="space-y-3">
-              {allClassesToday.map((cls) => (
-              <div key={cls.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-brand-primary transition-colors">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-gray-900">{cls.name}</h4>
-                      <div className="mt-2 grid gap-2 text-sm text-gray-600 sm:mt-1 sm:flex sm:flex-wrap sm:gap-3">
-                        <span className="flex items-center">
-                          <span className="font-medium text-brand-primary mr-1">Subject:</span>
-                          {cls.subject}
-                        </span>
-                        <span className="flex items-center">
-                          <span className="font-medium text-brand-secondary mr-1">Time:</span>
-                          {cls.start_time} - {cls.end_time}
-                        </span>
-                        {cls.room && (
-                          <span className="flex items-center">
-                            <span className="font-medium text-brand-warning mr-1">Room:</span>
-                            {cls.room}
-                          </span>
-                        )}
-                      </div>
-                      <div className="mt-2 grid gap-2 text-sm sm:flex sm:flex-wrap sm:gap-3">
-                        <span className="text-gray-600">
-                          Centre: <span className="font-medium">{cls.centre_name}</span>
-                        </span>
-                        <span className="text-gray-600">
-                          Teacher: <span className="font-medium">{cls.teacher_name}</span>
-                        </span>
-                        <span className="text-gray-600">
-                          Students: <span className="font-medium text-brand-success">{cls.student_count}</span>
-                        </span>
-                      </div>
+            <div className="space-y-6">
+              {Object.entries(groupedAllClassesToday)
+                .sort(([teacherA], [teacherB]) => teacherA.localeCompare(teacherB))
+                .map(([teacherName, teacherClasses]) => (
+                  <div key={teacherName} className="space-y-3">
+                    <h4 className="text-sm font-bold text-gray-900">{teacherName}</h4>
+                    <div className="space-y-3">
+                      {teacherClasses
+                        .slice()
+                        .sort((a, b) => a.start_time.localeCompare(b.start_time))
+                        .map((cls) => (
+                          <div
+                            key={cls.id}
+                            className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-brand-primary transition-colors"
+                          >
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                              <div className="flex-1">
+                                <h4 className="font-semibold text-gray-900">{cls.name}</h4>
+                                <div className="mt-2 grid gap-2 text-sm text-gray-600 sm:mt-1 sm:flex sm:flex-wrap sm:gap-3">
+                                  <span className="flex items-center">
+                                    <span className="font-medium text-brand-primary mr-1">Subject:</span>
+                                    {cls.subject}
+                                  </span>
+                                  <span className="flex items-center">
+                                    <span className="font-medium text-brand-secondary mr-1">Time:</span>
+                                    {cls.start_time} - {cls.end_time}
+                                  </span>
+                                  {cls.room && (
+                                    <span className="flex items-center">
+                                      <span className="font-medium text-brand-warning mr-1">Room:</span>
+                                      {cls.room}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="mt-2 grid gap-2 text-sm sm:flex sm:flex-wrap sm:gap-3">
+                                  <span className="text-gray-600">
+                                    Centre: <span className="font-medium">{cls.centre_name}</span>
+                                  </span>
+                                  <span className="text-gray-600">
+                                    Teacher: <span className="font-medium">{cls.teacher_name}</span>
+                                  </span>
+                                  <span className="text-gray-600">
+                                    Students: <span className="font-medium text-brand-success">{cls.student_count}</span>
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
             </div>
           )}
         </div>
