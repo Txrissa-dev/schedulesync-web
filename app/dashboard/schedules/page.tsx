@@ -193,6 +193,7 @@ export default function SchedulesPage() {
               .from('lesson_statuses')
               .select('class_id, scheduled_date')
               .in('class_id', classIds)
+              .neq('status', 'rescheduled')
               .gte('scheduled_date', monthStartIso)
               .lt('scheduled_date', monthEndIso)
           )
